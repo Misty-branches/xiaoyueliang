@@ -4,9 +4,27 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { stream ->
+        localProperties.load(stream)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
+if (flutterVersionCode == null) {
+    flutterVersionCode = "1"
+}
+
+def flutterVersionName = localProperties.getProperty("flutter.versionName")
+if (flutterVersionName == null) {
+    flutterVersionName = "1.0.0"
+}
+
 android {
     namespace "com.xiaoyueliang.app"
-    compileSdk 34
+    compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -14,20 +32,24 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    lint {
+        checkDependencies false
+    }
+
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = "17"
     }
 
     sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
+        main.java.srcDirs += "src/main/kotlin"
     }
 
     defaultConfig {
         applicationId "com.xiaoyueliang.app"
-        minSdk 21
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        minSdk flutter.minSdkVersion
+        targetSdk flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
     }
 
     buildTypes {
@@ -38,5 +60,5 @@ android {
 }
 
 flutter {
-    source '../..'
+    source "../.."
 }
