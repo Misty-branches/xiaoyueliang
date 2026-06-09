@@ -1,0 +1,8 @@
+{
+    "name": "小月亮",
+    "short_name": "小月亮",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#F2F0EB",
+    "theme_color": "#162B42"
+}

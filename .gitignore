@@ -1,0 +1,15 @@
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+!.packages
+.packages
+.dart_tool/
+.android/
+.ios/
+*.iml
+.DS_Store
+.idea/
+*.swp
+*.swo
+*~
+*.log
