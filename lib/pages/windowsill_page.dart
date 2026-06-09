@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../widgets/theme_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/moon_icon.dart';
@@ -246,7 +247,7 @@ class _WindowFramePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
     final moonCenter = Offset(size.width * 0.65, size.height * 0.35);
-    final moonRadius = 28;
+    final moonRadius = 28.0;
     canvas.drawCircle(moonCenter, moonRadius, moonPaint);
     // Moon crescent effect
     final fillPaint = Paint()
@@ -278,7 +279,7 @@ class _BottomLinePainter extends CustomPainter {
     final path = Path();
     path.moveTo(0, size.height);
     for (double x = 0; x <= size.width; x += 4) {
-      final y = size.height - 8 - (x * 0.02).sin() * 6 - (x * 0.01).cos() * 4;
+      final y = size.height - 8 - math.sin(x * 0.02) * 6 - math.cos(x * 0.01) * 4;
       path.lineTo(x, y);
     }
     path.lineTo(size.width, size.height);

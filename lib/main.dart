@@ -33,7 +33,7 @@ class XiaoYueLiangApp extends StatelessWidget {
     final theme = baseTheme.copyWith(
       scaffoldBackgroundColor: colors.background,
       extensions: <ThemeExtension<AppColors>>[colors],
-      textTheme: GoogleFonts.notoSansSCTextTheme(baseTheme.textTheme),
+      textTheme: GoogleFonts.notoSansScTextTheme(baseTheme.textTheme),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.cardSurface,
         foregroundColor: colors.mainText,

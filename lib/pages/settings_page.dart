@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/theme_colors.dart';
+import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 
 class SettingsPage extends StatefulWidget {
