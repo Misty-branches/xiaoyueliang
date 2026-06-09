@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'providers/theme_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/diary_provider.dart';
+import 'providers/todo_provider.dart';
+import 'providers/bookshelf_provider.dart';
+import 'providers/echo_provider.dart';
 import 'widgets/theme_colors.dart';
 import 'pages/windowsill_page.dart';
 
@@ -11,8 +15,12 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..initTheme()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => DiaryProvider()),
+        ChangeNotifierProvider(create: (_) => TodoProvider()),
+        ChangeNotifierProvider(create: (_) => BookshelfProvider()),
+        ChangeNotifierProvider(create: (_) => EchoProvider()),
       ],
       child: const XiaoYueLiangApp(),
     ),

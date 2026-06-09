@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../providers/bookshelf_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
@@ -15,30 +15,14 @@ class BookshelfPage extends StatefulWidget {
 }
 
 class _BookshelfPageState extends State<BookshelfPage> {
-  List<BookItem> _books = [];
   final _uuid = const Uuid();
 
   @override
   void initState() {
     super.initState();
-    _loadBooks();
-  }
-
-  Future<void> _loadBooks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('books');
-    if (data != null) {
-      final list = jsonDecode(data) as List;
-      setState(() {
-        _books = list.map((e) => BookItem.fromJson(e)).toList();
-      });
-    }
-  }
-
-  Future<void> _saveBooks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = jsonEncode(_books.map((b) => b.toJson()).toList());
-    await prefs.setString('books', data);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<BookshelfProvider>().loadBooks();
+    });
   }
 
   Future<void> _addBook() async {
@@ -53,8 +37,7 @@ class _BookshelfPageState extends State<BookshelfPage> {
         author: result['author'] ?? '',
         totalPages: int.tryParse(result['totalPages'] ?? '0') ?? 0,
       );
-      setState(() => _books.add(book));
-      await _saveBooks();
+      await context.read<BookshelfProvider>().addBook(book);
     }
   }
 
@@ -94,10 +77,9 @@ class _BookshelfPageState extends State<BookshelfPage> {
               final total = int.tryParse(totalCtrl.text) ?? book.totalPages;
               final current =
                   int.tryParse(currentCtrl.text) ?? book.currentPages;
-              book.totalPages = total;
-              book.currentPages = current;
-              await _saveBooks();
-              setState(() {});
+              await context
+                  .read<BookshelfProvider>()
+                  .updateProgress(book.id, total, current);
               Navigator.pop(ctx);
             },
             child: const Text('确定'),
@@ -108,8 +90,7 @@ class _BookshelfPageState extends State<BookshelfPage> {
   }
 
   Future<void> _deleteBook(BookItem book) async {
-    setState(() => _books.removeWhere((b) => b.id == book.id));
-    await _saveBooks();
+    await context.read<BookshelfProvider>().deleteBook(book.id);
   }
 
   @override
@@ -141,8 +122,11 @@ class _BookshelfPageState extends State<BookshelfPage> {
           ),
         ],
       ),
-      body: _books.isEmpty
-          ? Center(
+      body: Consumer<BookshelfProvider>(
+        builder: (context, bookshelf, _) {
+          final books = bookshelf.books;
+          if (books.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -170,16 +154,19 @@ class _BookshelfPageState extends State<BookshelfPage> {
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              itemCount: _books.length,
-              itemBuilder: (context, index) {
-                final book = _books[index];
-                return _buildBookCard(context, colors, book);
-              },
-            ),
+            );
+          }
+          return ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: books.length,
+            itemBuilder: (context, index) {
+              final book = books[index];
+              return _buildBookCard(context, colors, book);
+            },
+          );
+        },
+      ),
     );
   }
 

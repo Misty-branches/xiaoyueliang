@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../providers/diary_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
@@ -16,38 +15,16 @@ class DiaryPage extends StatefulWidget {
 }
 
 class _DiaryPageState extends State<DiaryPage> {
-  List<DiaryEntry> _entries = [];
   String _currentFilter = '全部';
-  final _uuid = const Uuid();
-  final List<String> _filters = ['全部', '日记', '梦境'];
+  // DREAM_FILTER_HIDDEN: 梦境分类已暂时隐藏，未来可在 _filters 列表中添加 '梦境' 恢复
+  final List<String> _filters = ['全部', '日记'];
 
   @override
   void initState() {
     super.initState();
-    _loadEntries();
-  }
-
-  Future<void> _loadEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('diary_entries');
-    if (data != null) {
-      final list = jsonDecode(data) as List;
-      setState(() {
-        _entries = list.map((e) => DiaryEntry.fromJson(e)).toList();
-        _entries.sort((a, b) => b.date.compareTo(a.date));
-      });
-    }
-  }
-
-  Future<void> _saveEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = jsonEncode(_entries.map((e) => e.toJson()).toList());
-    await prefs.setString('diary_entries', data);
-  }
-
-  List<DiaryEntry> get _filteredEntries {
-    if (_currentFilter == '全部') return _entries;
-    return _entries.where((e) => e.category == _currentFilter).toList();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DiaryProvider>().loadEntries();
+    });
   }
 
   Future<void> _addOrEditEntry({DiaryEntry? existing}) async {
@@ -58,24 +35,12 @@ class _DiaryPageState extends State<DiaryPage> {
       ),
     );
     if (result != null && result is DiaryEntry) {
-      setState(() {
-        if (existing != null) {
-          final idx = _entries.indexWhere((e) => e.id == existing.id);
-          if (idx != -1) _entries[idx] = result;
-        } else {
-          _entries.insert(0, result);
-        }
-        _entries.sort((a, b) => b.date.compareTo(a.date));
-      });
-      await _saveEntries();
+      await context.read<DiaryProvider>().addOrUpdateEntry(result);
     }
   }
 
   Future<void> _deleteEntry(DiaryEntry entry) async {
-    setState(() {
-      _entries.removeWhere((e) => e.id == entry.id);
-    });
-    await _saveEntries();
+    await context.read<DiaryProvider>().deleteEntry(entry.id);
   }
 
   @override
@@ -143,8 +108,15 @@ class _DiaryPageState extends State<DiaryPage> {
             ),
           ),
           Expanded(
-            child: _filteredEntries.isEmpty
-                ? Center(
+            child: Consumer<DiaryProvider>(
+              builder: (context, diary, _) {
+                final entries = _currentFilter == '全部'
+                    ? diary.entries
+                    : diary.entries
+                        .where((e) => e.category == _currentFilter)
+                        .toList();
+                if (entries.isEmpty) {
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -160,16 +132,19 @@ class _DiaryPageState extends State<DiaryPage> {
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredEntries.length,
-                    itemBuilder: (context, index) {
-                      final entry = _filteredEntries[index];
-                      return _buildEntryCard(context, colors, entry, index);
-                    },
-                  ),
+                  );
+                }
+                return ListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  itemCount: entries.length,
+                  itemBuilder: (context, index) {
+                    final entry = entries[index];
+                    return _buildEntryCard(context, colors, entry, index, entries.length);
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -177,7 +152,7 @@ class _DiaryPageState extends State<DiaryPage> {
   }
 
   Widget _buildEntryCard(
-      BuildContext context, AppColors colors, DiaryEntry entry, int index) {
+      BuildContext context, AppColors colors, DiaryEntry entry, int index, int totalEntries) {
     return Column(
       children: [
         GlassCard(
@@ -248,7 +223,7 @@ class _DiaryPageState extends State<DiaryPage> {
           ),
         ),
         // Dotted divider
-        if (index < _filteredEntries.length - 1)
+        if (index < totalEntries - 1)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: CustomPaint(

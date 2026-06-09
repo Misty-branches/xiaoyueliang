@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../providers/todo_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
@@ -15,30 +15,14 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage> {
-  List<TodoItem> _todos = [];
   final _uuid = const Uuid();
 
   @override
   void initState() {
     super.initState();
-    _loadTodos();
-  }
-
-  Future<void> _loadTodos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('todos');
-    if (data != null) {
-      final list = jsonDecode(data) as List;
-      setState(() {
-        _todos = list.map((e) => TodoItem.fromJson(e)).toList();
-      });
-    }
-  }
-
-  Future<void> _saveTodos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = jsonEncode(_todos.map((t) => t.toJson()).toList());
-    await prefs.setString('todos', data);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TodoProvider>().loadTodos();
+    });
   }
 
   Future<void> _addTodo() async {
@@ -52,27 +36,17 @@ class _TodoPageState extends State<TodoPage> {
         title: result['title']!,
         tag: result['tag'] ?? '',
       );
-      setState(() => _todos.insert(0, todo));
-      await _saveTodos();
+      await context.read<TodoProvider>().addTodo(todo);
     }
   }
 
-  void _toggleTodo(TodoItem item) {
-    setState(() {
-      item.isCompleted = !item.isCompleted;
-    });
-    _saveTodos();
+  Future<void> _toggleTodo(TodoItem item) async {
+    await context.read<TodoProvider>().toggleTodo(item.id);
   }
 
   Future<void> _deleteTodo(TodoItem item) async {
-    setState(() => _todos.removeWhere((t) => t.id == item.id));
-    await _saveTodos();
+    await context.read<TodoProvider>().deleteTodo(item.id);
   }
-
-  List<TodoItem> get _incomplete =>
-      _todos.where((t) => !t.isCompleted).toList();
-  List<TodoItem> get _completed =>
-      _todos.where((t) => t.isCompleted).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -103,8 +77,11 @@ class _TodoPageState extends State<TodoPage> {
           ),
         ],
       ),
-      body: _todos.isEmpty
-          ? Center(
+      body: Consumer<TodoProvider>(
+        builder: (context, todoProv, _) {
+          final todos = todoProv.todos;
+          if (todos.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -120,44 +97,49 @@ class _TodoPageState extends State<TodoPage> {
                   ),
                 ],
               ),
-            )
-          : ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Incomplete section
-                if (_incomplete.isNotEmpty) ...[
-                  Text(
-                    '进行中',
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: colors.mainText,
-                    ),
+            );
+          }
+          final incomplete = todoProv.incompleteTodos;
+          final completed = todoProv.completedTodos;
+          return ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Incomplete section
+              if (incomplete.isNotEmpty) ...[
+                Text(
+                  '进行中',
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: colors.mainText,
                   ),
-                  const SizedBox(height: 8),
-                  ..._incomplete.map((todo) => _buildTodoCard(
-                      context, colors, todo)),
-                  const SizedBox(height: 20),
-                ],
-                // Completed section
-                if (_completed.isNotEmpty) ...[
-                  Text(
-                    '已完成',
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: colors.secondaryText,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._completed
-                      .map((todo) => _buildTodoCard(context, colors, todo)),
-                ],
+                ),
+                const SizedBox(height: 8),
+                ...incomplete.map((todo) =>
+                    _buildTodoCard(context, colors, todo)),
+                const SizedBox(height: 20),
               ],
-            ),
+              // Completed section
+              if (completed.isNotEmpty) ...[
+                Text(
+                  '已完成',
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: colors.secondaryText,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...completed
+                    .map((todo) => _buildTodoCard(context, colors, todo)),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 

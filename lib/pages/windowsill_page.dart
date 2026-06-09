@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:math' as math;
+import '../providers/diary_provider.dart';
+import '../providers/todo_provider.dart';
+import '../providers/chat_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/moon_icon.dart';
 import 'hub_page.dart';
-import 'settings_page.dart';
 
 class WindowsillPage extends StatefulWidget {
   const WindowsillPage({super.key});
@@ -20,6 +23,10 @@ class _WindowsillPageState extends State<WindowsillPage> {
   void initState() {
     super.initState();
     _updateGreeting();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DiaryProvider>().loadEntries();
+      context.read<TodoProvider>().loadTodos();
+    });
   }
 
   void _updateGreeting() {
@@ -63,16 +70,8 @@ class _WindowsillPageState extends State<WindowsillPage> {
                         color: colors.mainText,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const SettingsPage()),
-                        );
-                      },
-                      child: ThemeColors.settingsIcon(context, size: 24),
-                    ),
+                    // Settings icon removed from here — moved to hub page
+                    const SizedBox(width: 24),
                   ],
                 ),
               ),
@@ -96,43 +95,12 @@ class _WindowsillPageState extends State<WindowsillPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Activity card
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          ThemeColors.starIcon(context, size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            '今日随想',
-                            style: TextStyle(
-                              fontFamily: 'NotoSansSC',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                              color: colors.mainText,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '月亮不会说话，但它一直在那里。\n就像我一样，安静地陪着你。',
-                        style: TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 14,
-                          color: colors.secondaryText,
-                          height: 1.6,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Data cards
+              _buildTodayThoughtCard(context, colors),
+              const SizedBox(height: 12),
+              _buildTodoOverviewCard(context, colors),
+              const SizedBox(height: 12),
+              _buildRecentChatCard(context, colors),
               const SizedBox(height: 16),
               // Shortcut to hub
               Padding(
@@ -185,6 +153,144 @@ class _WindowsillPageState extends State<WindowsillPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTodayThoughtCard(BuildContext context, AppColors colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Consumer<DiaryProvider>(
+        builder: (context, diary, _) {
+          final latest = diary.latestEntry;
+          return GlassCard(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ThemeColors.starIcon(context, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '今日随想',
+                      style: TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: colors.mainText,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  latest != null
+                      ? '${latest.title}\n${latest.content.length > 60 ? '${latest.content.substring(0, 60)}...' : latest.content}'
+                      : '还没有记录 🌙',
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontSize: 14,
+                    color: colors.secondaryText,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTodoOverviewCard(BuildContext context, AppColors colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Consumer<TodoProvider>(
+        builder: (context, todoProv, _) {
+          final incompleteCount = todoProv.incompleteCount;
+          return GlassCard(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ThemeColors.todoIcon(context, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '待办概览',
+                      style: TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: colors.mainText,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  incompleteCount > 0
+                      ? '$incompleteCount 项待完成'
+                      : '今天都做完啦 ✅',
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontSize: 14,
+                    color: colors.secondaryText,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRecentChatCard(BuildContext context, AppColors colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Consumer<ChatProvider>(
+        builder: (context, chat, _) {
+          final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
+          return GlassCard(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ThemeColors.chatIcon(context, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '最近聊天',
+                      style: TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: colors.mainText,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  lastMsg != null
+                      ? '${lastMsg.content.length > 20 ? '${lastMsg.content.substring(0, 20)}...' : lastMsg.content}'
+                      : '和小月亮说说话吧',
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontSize: 14,
+                    color: colors.secondaryText,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

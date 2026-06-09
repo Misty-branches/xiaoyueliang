@@ -1,47 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import '../providers/echo_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
-
-class EchoEntry {
-  final String id;
-  final String title;
-  final String content;
-  final String code;
-  final String link;
-  final DateTime date;
-
-  EchoEntry({
-    required this.id,
-    required this.title,
-    required this.content,
-    this.code = '',
-    this.link = '',
-    required this.date,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'content': content,
-        'code': code,
-        'link': link,
-        'date': date.toIso8601String(),
-      };
-
-  factory EchoEntry.fromJson(Map<String, dynamic> json) => EchoEntry(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        content: json['content'] as String,
-        code: json['code'] as String? ?? '',
-        link: json['link'] as String? ?? '',
-        date: DateTime.parse(json['date'] as String),
-      );
-}
+import '../models/echo_entry.dart';
 
 class EchoWallPage extends StatefulWidget {
   const EchoWallPage({super.key});
@@ -51,32 +16,14 @@ class EchoWallPage extends StatefulWidget {
 }
 
 class _EchoWallPageState extends State<EchoWallPage> {
-  List<EchoEntry> _entries = [];
-  final _uuid = const Uuid();
   int _expandedIndex = -1;
 
   @override
   void initState() {
     super.initState();
-    _loadEntries();
-  }
-
-  Future<void> _loadEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('echo_entries');
-    if (data != null) {
-      final list = jsonDecode(data) as List;
-      setState(() {
-        _entries = list.map((e) => EchoEntry.fromJson(e)).toList();
-        _entries.sort((a, b) => b.date.compareTo(a.date));
-      });
-    }
-  }
-
-  Future<void> _saveEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = jsonEncode(_entries.map((e) => e.toJson()).toList());
-    await prefs.setString('echo_entries', data);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<EchoProvider>().loadEntries();
+    });
   }
 
   Future<void> _addEntry() async {
@@ -85,18 +32,12 @@ class _EchoWallPageState extends State<EchoWallPage> {
       MaterialPageRoute(builder: (_) => const EchoEditorPage()),
     );
     if (result != null && result is EchoEntry) {
-      setState(() {
-        _entries.insert(0, result);
-      });
-      await _saveEntries();
+      await context.read<EchoProvider>().addEntry(result);
     }
   }
 
   Future<void> _deleteEntry(EchoEntry entry) async {
-    setState(() {
-      _entries.removeWhere((e) => e.id == entry.id);
-    });
-    await _saveEntries();
+    await context.read<EchoProvider>().deleteEntry(entry.id);
   }
 
   @override
@@ -128,8 +69,10 @@ class _EchoWallPageState extends State<EchoWallPage> {
           ),
         ],
       ),
-      body: _entries.isEmpty
-          ? Center(
+      body: Consumer<EchoProvider>(
+        builder: (context, echo, _) {
+          if (echo.entries.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -157,18 +100,21 @@ class _EchoWallPageState extends State<EchoWallPage> {
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              itemCount: _entries.length,
-              itemBuilder: (context, index) {
-                final entry = _entries[index];
-                final expanded = _expandedIndex == index;
-                return _buildEchoCard(
-                    context, colors, entry, index, expanded);
-              },
-            ),
+            );
+          }
+          return ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: echo.entries.length,
+            itemBuilder: (context, index) {
+              final entry = echo.entries[index];
+              final expanded = _expandedIndex == index;
+              return _buildEchoCard(
+                  context, colors, entry, index, expanded);
+            },
+          );
+        },
+      ),
     );
   }
 
