@@ -6,6 +6,7 @@ import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 import '../models/diary_entry.dart';
+import 'package:uuid/uuid.dart';
 
 class DiaryPage extends StatefulWidget {
   const DiaryPage({super.key});
