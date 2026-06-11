@@ -130,7 +130,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String> _extractContent(String body) {
+  String _extractContent(String body) {
     try {
       final data = jsonDecode(body);
       final choice = data['choices']?[0];
