@@ -27,7 +27,8 @@ class BookshelfProvider extends ChangeNotifier {
   }
 
   Future<void> addBook(BookItem item) async {
-    _books.add(item);
+    _books.insert(0, item);
+    _books.sort((a, b) => b.addedAt.compareTo(a.addedAt));
     await saveBooks();
     notifyListeners();
   }
@@ -35,8 +36,25 @@ class BookshelfProvider extends ChangeNotifier {
   Future<void> updateProgress(String id, int total, int current) async {
     final idx = _books.indexWhere((b) => b.id == id);
     if (idx != -1) {
-      _books[idx].totalPages = total;
-      _books[idx].currentPages = current;
+      final old = _books[idx];
+      _books[idx] = BookItem(
+        id: old.id,
+        title: old.title,
+        author: old.author,
+        totalPages: total,
+        currentPages: current,
+        coverEmoji: old.coverEmoji,
+        addedAt: old.addedAt,
+      );
+      await saveBooks();
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateBook(BookItem item) async {
+    final idx = _books.indexWhere((b) => b.id == item.id);
+    if (idx != -1) {
+      _books[idx] = item;
       await saveBooks();
       notifyListeners();
     }

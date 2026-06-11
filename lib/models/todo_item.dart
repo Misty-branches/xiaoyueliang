@@ -1,9 +1,9 @@
 class TodoItem {
   final String id;
-  String title;
-  String tag;
-  bool isCompleted;
-  DateTime createdAt;
+  final String title;
+  final String tag;
+  final bool isCompleted;
+  final DateTime createdAt;
 
   TodoItem({
     required this.id,

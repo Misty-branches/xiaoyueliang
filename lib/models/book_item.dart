@@ -1,11 +1,11 @@
 class BookItem {
   final String id;
-  String title;
-  String author;
-  int totalPages;
-  int currentPages;
-  String coverEmoji; // using emoji as placeholder for cover art
-  DateTime addedAt;
+  final String title;
+  final String author;
+  final int totalPages;
+  final int currentPages;
+  final String coverEmoji; // using emoji as placeholder for cover art
+  final DateTime addedAt;
 
   BookItem({
     required this.id,

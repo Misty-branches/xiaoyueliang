@@ -7,6 +7,11 @@ import 'providers/diary_provider.dart';
 import 'providers/todo_provider.dart';
 import 'providers/bookshelf_provider.dart';
 import 'providers/echo_provider.dart';
+import 'providers/message_board_provider.dart';
+import 'providers/letter_provider.dart';
+import 'providers/note_provider.dart';
+import 'providers/collection_provider.dart';
+import 'providers/project_provider.dart';
 import 'widgets/theme_colors.dart';
 import 'pages/windowsill_page.dart';
 
@@ -16,11 +21,16 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()..initTheme()),
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
-        ChangeNotifierProvider(create: (_) => DiaryProvider()),
-        ChangeNotifierProvider(create: (_) => TodoProvider()),
-        ChangeNotifierProvider(create: (_) => BookshelfProvider()),
-        ChangeNotifierProvider(create: (_) => EchoProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()..load()),
+        ChangeNotifierProvider(create: (_) => DiaryProvider()..loadEntries()),
+        ChangeNotifierProvider(create: (_) => TodoProvider()..loadTodos()),
+        ChangeNotifierProvider(create: (_) => BookshelfProvider()..loadBooks()),
+        ChangeNotifierProvider(create: (_) => EchoProvider()..loadEntries()),
+        ChangeNotifierProvider(create: (_) => MessageBoardProvider()..loadPosts()),
+        ChangeNotifierProvider(create: (_) => LetterProvider()..loadLetters()),
+        ChangeNotifierProvider(create: (_) => NoteProvider()..loadNotes()),
+        ChangeNotifierProvider(create: (_) => CollectionProvider()..loadItems()),
+        ChangeNotifierProvider(create: (_) => ProjectProvider()..loadProjects()),
       ],
       child: const XiaoYueLiangApp(),
     ),

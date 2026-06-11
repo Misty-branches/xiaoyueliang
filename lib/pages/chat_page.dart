@@ -22,7 +22,7 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatProvider>().loadMessages().then((_) {
+      context.read<ChatProvider>().load().then((_) {
         _scrollToBottom();
       });
     });

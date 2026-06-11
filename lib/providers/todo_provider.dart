@@ -30,6 +30,7 @@ class TodoProvider extends ChangeNotifier {
 
   Future<void> addTodo(TodoItem item) async {
     _todos.insert(0, item);
+    _todos.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     await saveTodos();
     notifyListeners();
   }
@@ -37,7 +38,23 @@ class TodoProvider extends ChangeNotifier {
   Future<void> toggleTodo(String id) async {
     final idx = _todos.indexWhere((t) => t.id == id);
     if (idx != -1) {
-      _todos[idx].isCompleted = !_todos[idx].isCompleted;
+      final old = _todos[idx];
+      _todos[idx] = TodoItem(
+        id: old.id,
+        title: old.title,
+        tag: old.tag,
+        isCompleted: !old.isCompleted,
+        createdAt: old.createdAt,
+      );
+      await saveTodos();
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateTodo(TodoItem item) async {
+    final idx = _todos.indexWhere((t) => t.id == item.id);
+    if (idx != -1) {
+      _todos[idx] = item;
       await saveTodos();
       notifyListeners();
     }

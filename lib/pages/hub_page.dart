@@ -31,7 +31,7 @@ class _HubPageState extends State<HubPage> {
       context.read<TodoProvider>().loadTodos();
       context.read<BookshelfProvider>().loadBooks();
       context.read<EchoProvider>().loadEntries();
-      context.read<ChatProvider>().loadMessages();
+      context.read<ChatProvider>().load();
     });
   }
 
