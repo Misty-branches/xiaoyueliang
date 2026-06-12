@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:math' as math;
 import '../providers/daily_message_provider.dart';
 import '../providers/shared_goals_provider.dart';
 import '../providers/recent_activity_provider.dart';
+import '../providers/chat_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/moon_icon.dart';
@@ -18,6 +18,7 @@ class WindowsillPage extends StatefulWidget {
 
 class _WindowsillPageState extends State<WindowsillPage> {
   String _greeting = '';
+  int _dayCount = 7;
 
   @override
   void initState() {
@@ -55,47 +56,17 @@ class _WindowsillPageState extends State<WindowsillPage> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
+              const SizedBox(height: 16),
+              // 顶部状态栏
+              _buildHeader(context, colors),
               const SizedBox(height: 20),
-              // Top bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '小月亮',
-                      style: TextStyle(
-                        fontFamily: 'NotoSerifSC',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 22,
-                        color: colors.mainText,
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 30),
-              // Frame with moon
-              _buildMoonFrame(context, colors),
-              const SizedBox(height: 30),
-              // Greeting
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  _greeting,
-                  style: TextStyle(
-                    fontFamily: 'NotoSerifSC',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                    letterSpacing: 1,
-                    color: colors.mainText,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Data cards - 今日寄语
+              // 欢迎卡片
+              _buildWelcomeCard(context, colors),
+              const SizedBox(height: 16),
+              // 快捷入口网格
+              _buildQuickAccessGrid(context, colors),
+              const SizedBox(height: 16),
+              // 今日寄语
               _buildDailyMessageCard(context, colors),
               const SizedBox(height: 12),
               // 共同目标
@@ -103,58 +74,171 @@ class _WindowsillPageState extends State<WindowsillPage> {
               const SizedBox(height: 12),
               // 最近活动
               _buildRecentActivityCard(context, colors),
-              const SizedBox(height: 16),
-              // Shortcut to hub
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GlassCard(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const HubPage()),
-                    );
-                  },
-                  child: Row(
-                    children: [
-                      ThemeColors.moonIcon(context, size: 36),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '月下窗',
-                              style: TextStyle(
-                                fontFamily: 'NotoSansSC',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                                color: colors.mainText,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '聊天 · 日记 · 书架 · 待办 · 回音墙',
-                              style: TextStyle(
-                                fontFamily: 'NotoSansSC',
-                                fontSize: 12,
-                                color: colors.secondaryText,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ThemeColors.arrowRightIcon(context),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Bottom decoration
-              _buildBottomDecor(context, colors),
               const SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: _buildBottomTabBar(context, colors),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AppColors colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              ThemeColors.moonIcon(context, size: 28),
+              const SizedBox(width: 10),
+              Text(
+                '月下窗',
+                style: TextStyle(
+                  fontFamily: 'NotoSerifSC',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  color: colors.mainText,
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Text(
+                '$_dayCount',
+                style: TextStyle(
+                  fontFamily: 'NotoSansSC',
+                  fontSize: 12,
+                  color: colors.secondaryText,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'day',
+                style: TextStyle(
+                  fontFamily: 'NotoSansSC',
+                  fontSize: 10,
+                  color: colors.mutedText,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard(BuildContext context, AppColors colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GlassCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'MOON WINDOW · OUR HOME',
+              style: TextStyle(
+                fontFamily: 'NotoSansSC',
+                fontSize: 10,
+                letterSpacing: 2,
+                color: colors.mutedText,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '我们的家',
+              style: TextStyle(
+                fontFamily: 'NotoSerifSC',
+                fontWeight: FontWeight.w700,
+                fontSize: 24,
+                color: colors.mainText,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '听听音乐，看看日历，逛逛工具箱',
+              style: TextStyle(
+                fontFamily: 'NotoSansSC',
+                fontSize: 14,
+                color: colors.secondaryText,
+              ),
+            ),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HubPage()),
+                );
+              },
+              child: Row(
+                children: [
+                  Text(
+                    '进入客厅',
+                    style: TextStyle(
+                      fontFamily: 'NotoSansSC',
+                      fontSize: 14,
+                      color: colors.accent,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: colors.accent,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessGrid(BuildContext context, AppColors colors) {
+    final items = [
+      _QuickAccessItem(icon: Icons.music_note, label: '音乐', onTap: () {}),
+      _QuickAccessItem(icon: Icons.calendar_today, label: '日历', onTap: () {}),
+      _QuickAccessItem(icon: Icons.shopping_cart, label: '购物', onTap: () {}),
+      _QuickAccessItem(icon: Icons.more_horiz, label: '更多', onTap: () {}),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 2.5,
+        children: items.map((item) => _buildQuickAccessItem(context, colors, item)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessItem(BuildContext context, AppColors colors, _QuickAccessItem item) {
+    return GlassCard(
+      onTap: item.onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(item.icon, size: 20, color: colors.accent),
+          const SizedBox(width: 10),
+          Text(
+            item.label,
+            style: TextStyle(
+              fontFamily: 'NotoSansSC',
+              fontSize: 14,
+              color: colors.mainText,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -205,16 +289,29 @@ class _WindowsillPageState extends State<WindowsillPage> {
                     height: 1.6,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  provider.hasMessage
-                      ? '${provider.message!.generatedAt.month}/${provider.message!.generatedAt.day}, ${provider.message!.generatedAt.year}'
-                      : '${DateTime.now().month}/${DateTime.now().day}, ${DateTime.now().year}',
-                  style: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontSize: 11,
-                    color: colors.secondaryText,
-                  ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      provider.hasMessage
+                          ? '${provider.message!.generatedAt.month}/${provider.message!.generatedAt.day}, ${provider.message!.generatedAt.year}'
+                          : '${DateTime.now().month}/${DateTime.now().day}, ${DateTime.now().year}',
+                      style: TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontSize: 11,
+                        color: colors.mutedText,
+                      ),
+                    ),
+                    Text(
+                      '展开全文 ▾',
+                      style: TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontSize: 11,
+                        color: colors.accent,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -397,7 +494,7 @@ class _WindowsillPageState extends State<WindowsillPage> {
                                     style: TextStyle(
                                       fontFamily: 'NotoSansSC',
                                       fontSize: 11,
-                                      color: colors.secondaryText,
+                                      color: colors.mutedText,
                                     ),
                                   ),
                                 ],
@@ -417,114 +514,66 @@ class _WindowsillPageState extends State<WindowsillPage> {
     );
   }
 
-  Widget _buildMoonFrame(BuildContext context, AppColors colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: CustomPaint(
-        size: const Size(double.infinity, 180),
-        painter: _WindowFramePainter(borderColor: colors.border, accentColor: colors.accentWarm),
+  Widget _buildBottomTabBar(BuildContext context, AppColors colors) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.cardSurface,
+        border: Border(
+          top: BorderSide(color: colors.border, width: 0.5),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildTabItem(context, colors, Icons.home, '窗台', true),
+              _buildTabItem(context, colors, Icons.living, '客厅', false),
+              _buildTabItem(context, colors, Icons.settings, '设置', false),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildBottomDecor(BuildContext context, AppColors colors) {
-    return SizedBox(
-      height: 40,
-      child: CustomPaint(
-        size: const Size(double.infinity, 40),
-        painter: _BottomLinePainter(color: colors.border),
+  Widget _buildTabItem(BuildContext context, AppColors colors, IconData icon, String label, bool isActive) {
+    return InkWell(
+      onTap: () {
+        // TODO: 切换标签页
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 24,
+            color: isActive ? colors.accent : colors.mutedText,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'NotoSansSC',
+              fontSize: 10,
+              color: isActive ? colors.accent : colors.mutedText,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _WindowFramePainter extends CustomPainter {
-  final Color borderColor;
-  final Color accentColor;
-  _WindowFramePainter({required this.borderColor, required this.accentColor});
+class _QuickAccessItem {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-
-    // Window frame
-    final frameRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(2, 2, size.width - 4, size.height - 4),
-      const Radius.circular(8),
-    );
-    canvas.drawRRect(frameRect, paint);
-
-    // Cross in window
-    canvas.drawLine(
-      Offset(size.width / 2, 2),
-      Offset(size.width / 2, size.height - 2),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(2, size.height / 2),
-      Offset(size.width - 2, size.height / 2),
-      paint,
-    );
-
-    // Moon
-    final moonPaint = Paint()
-      ..color = accentColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    final moonCenter = Offset(size.width * 0.65, size.height * 0.35);
-    final moonRadius = 28.0;
-    canvas.drawCircle(moonCenter, moonRadius, moonPaint);
-    // Moon crescent effect
-    final fillPaint = Paint()
-      ..color = const Color(0xFFF2F0EB)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(
-      Offset(moonCenter.dx + 10, moonCenter.dy - 8),
-      moonRadius * 0.7,
-      fillPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BottomLinePainter extends CustomPainter {
-  final Color color;
-  _BottomLinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    // Simple mountain/hill line art
-    final path = Path();
-    path.moveTo(0, size.height);
-    for (double x = 0; x <= size.width; x += 4) {
-      final y = size.height - 8 - math.sin(x * 0.02) * 6 - math.cos(x * 0.01) * 4;
-      path.lineTo(x, y);
-    }
-    path.lineTo(size.width, size.height);
-    path.close();
-    canvas.drawPath(path, Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8);
-
-    // Stars
-    for (int i = 0; i < 5; i++) {
-      final sx = 20 + i * (size.width / 5);
-      final sy = size.height - 16 - (i * 3) % 7;
-      canvas.drawCircle(Offset(sx, sy), 1.5, Paint()..color = color);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  _QuickAccessItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 }
