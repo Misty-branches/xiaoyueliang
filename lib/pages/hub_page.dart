@@ -1,10 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/chat_provider.dart';
-import '../providers/letter_provider.dart';
-import '../providers/bookshelf_provider.dart';
-import '../providers/todo_provider.dart';
-import '../providers/echo_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/glass_card.dart';
 import 'chat_page.dart';
@@ -13,29 +7,13 @@ import 'bookshelf_page.dart';
 import 'todo_page.dart';
 import 'echo_wall_page.dart';
 
-class HubPage extends StatefulWidget {
+class HubPage extends StatelessWidget {
   const HubPage({super.key});
-
-  @override
-  State<HubPage> createState() => _HubPageState();
-}
-
-class _HubPageState extends State<HubPage> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatProvider>().load();
-      context.read<LetterProvider>().loadLetters();
-      context.read<BookshelfProvider>().loadBooks();
-      context.read<TodoProvider>().loadTodos();
-      context.read<EchoProvider>().loadEntries();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    
     return Scaffold(
       backgroundColor: colors.background,
       body: SafeArea(
@@ -43,7 +21,7 @@ class _HubPageState extends State<HubPage> {
           children: [
             // 顶部状态栏
             _buildHeader(context, colors),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             // 房间网格
             Expanded(
               child: SingleChildScrollView(
@@ -62,7 +40,7 @@ class _HubPageState extends State<HubPage> {
                     ),
                     const SizedBox(height: 20),
                     _buildRoomGrid(context, colors),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -70,10 +48,13 @@ class _HubPageState extends State<HubPage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomTabBar(context, colors),
+      bottomNavigationBar: _buildBottomNav(context, colors),
     );
   }
 
+  // ═══════════════════════════════════════════
+  // 顶部状态栏
+  // ═══════════════════════════════════════════
   Widget _buildHeader(BuildContext context, AppColors colors) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -96,60 +77,68 @@ class _HubPageState extends State<HubPage> {
             ),
           ),
           const Spacer(),
-          const SizedBox(width: 36), // 占位，保持标题居中
+          const SizedBox(width: 36),
         ],
       ),
     );
   }
 
+  // ═══════════════════════════════════════════
+  // 房间网格（2列布局）
+  // ═══════════════════════════════════════════
   Widget _buildRoomGrid(BuildContext context, AppColors colors) {
     final rooms = [
       _RoomItem(
         icon: Icons.chat_bubble_outline,
         label: '聊天室',
         subLabel: 'CHAT',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatPage())),
+        page: const ChatPage(),
       ),
       _RoomItem(
         icon: Icons.edit_outlined,
         label: '信件室',
         subLabel: 'LETTERS',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiaryPage())),
+        page: const DiaryPage(),
       ),
       _RoomItem(
         icon: Icons.book_outlined,
         label: '书房',
         subLabel: 'BOOKS',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BookshelfPage())),
+        page: const BookshelfPage(),
       ),
       _RoomItem(
         icon: Icons.check_circle_outline,
         label: '工作台',
         subLabel: 'TASKS',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TodoPage())),
+        page: const TodoPage(),
       ),
       _RoomItem(
         icon: Icons.favorite_outline,
         label: '回忆馆',
         subLabel: 'MEMORIES',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EchoWallPage())),
+        page: const EchoWallPage(),
       ),
     ];
 
-    return GridView.count(
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.2,
-      children: rooms.map((room) => _buildRoomCard(context, colors, room)).toList(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.2,
+      ),
+      itemCount: rooms.length,
+      itemBuilder: (context, index) => _buildRoomCard(context, colors, rooms[index]),
     );
   }
 
   Widget _buildRoomCard(BuildContext context, AppColors colors, _RoomItem room) {
     return GlassCard(
-      onTap: room.onTap,
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => room.page));
+      },
       padding: const EdgeInsets.all(16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -161,11 +150,7 @@ class _HubPageState extends State<HubPage> {
               color: colors.accentLight,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              room.icon,
-              size: 24,
-              color: colors.accent,
-            ),
+            child: Icon(room.icon, size: 24, color: colors.accent),
           ),
           const SizedBox(height: 12),
           Text(
@@ -192,13 +177,14 @@ class _HubPageState extends State<HubPage> {
     );
   }
 
-  Widget _buildBottomTabBar(BuildContext context, AppColors colors) {
+  // ═══════════════════════════════════════════
+  // 底部导航栏
+  // ═══════════════════════════════════════════
+  Widget _buildBottomNav(BuildContext context, AppColors colors) {
     return Container(
       decoration: BoxDecoration(
         color: colors.cardSurface,
-        border: Border(
-          top: BorderSide(color: colors.border, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: colors.border, width: 0.5)),
       ),
       child: SafeArea(
         child: Padding(
@@ -206,11 +192,11 @@ class _HubPageState extends State<HubPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildTabItem(context, colors, Icons.home, '窗台', false, () => Navigator.pop(context)),
-              _buildTabItem(context, colors, Icons.weekend, '客厅', true, () {}),
-              _buildTabItem(context, colors, Icons.settings, '设置', false, () {
-                // TODO: 导航到设置页
+              _buildNavItem(context, colors, Icons.home, '窗台', false, () {
+                Navigator.pop(context);
               }),
+              _buildNavItem(context, colors, Icons.weekend, '客厅', true, () {}),
+              _buildNavItem(context, colors, Icons.settings, '设置', false, () {}),
             ],
           ),
         ),
@@ -218,17 +204,20 @@ class _HubPageState extends State<HubPage> {
     );
   }
 
-  Widget _buildTabItem(BuildContext context, AppColors colors, IconData icon, String label, bool isActive, VoidCallback onTap) {
+  Widget _buildNavItem(
+    BuildContext context, 
+    AppColors colors, 
+    IconData icon, 
+    String label, 
+    bool isActive,
+    VoidCallback onTap,
+  ) {
     return InkWell(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 24,
-            color: isActive ? colors.accent : colors.mutedText,
-          ),
+          Icon(icon, size: 24, color: isActive ? colors.accent : colors.mutedText),
           const SizedBox(height: 4),
           Text(
             label,
@@ -244,16 +233,19 @@ class _HubPageState extends State<HubPage> {
   }
 }
 
+// ═══════════════════════════════════════════
+// 房间数据模型
+// ═══════════════════════════════════════════
 class _RoomItem {
   final IconData icon;
   final String label;
   final String subLabel;
-  final VoidCallback onTap;
+  final Widget page;
 
   _RoomItem({
     required this.icon,
     required this.label,
     required this.subLabel,
-    required this.onTap,
+    required this.page,
   });
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+// Providers
 import 'providers/theme_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/diary_provider.dart';
@@ -16,7 +18,11 @@ import 'providers/daily_message_provider.dart';
 import 'providers/shared_goals_provider.dart';
 import 'providers/recent_activity_provider.dart';
 import 'providers/provider_config_provider.dart';
+
+// Theme
 import 'widgets/theme_colors.dart';
+
+// Pages
 import 'pages/windowsill_page.dart';
 
 void main() {
@@ -24,7 +30,9 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        // 主题
         ChangeNotifierProvider(create: (_) => ThemeProvider()..initTheme()),
+        // 数据层
         ChangeNotifierProvider(create: (_) => ChatProvider()..load()),
         ChangeNotifierProvider(create: (_) => DiaryProvider()..loadEntries()),
         ChangeNotifierProvider(create: (_) => TodoProvider()..loadTodos()),
@@ -35,26 +43,27 @@ void main() {
         ChangeNotifierProvider(create: (_) => NoteProvider()..loadNotes()),
         ChangeNotifierProvider(create: (_) => CollectionProvider()..loadItems()),
         ChangeNotifierProvider(create: (_) => ProjectProvider()..loadProjects()),
+        // 观察层
         ChangeNotifierProvider(create: (_) => DailyMessageProvider()..loadMessage()),
         ChangeNotifierProvider(create: (_) => SharedGoalsProvider()..loadGoals()),
         ChangeNotifierProvider(create: (_) => RecentActivityProvider()..loadActivities()),
+        // 配置层
         ChangeNotifierProvider(create: (_) => ProviderConfigProvider()..loadProviders()),
       ],
-      child: const XiaoYueLiangApp(),
+      child: const MoonlitWindowApp(),
     ),
   );
 }
 
-class XiaoYueLiangApp extends StatelessWidget {
-  const XiaoYueLiangApp({super.key});
+class MoonlitWindowApp extends StatelessWidget {
+  const MoonlitWindowApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
-    final isDark = themeProvider.isDark;
     final colors = themeProvider.colors;
 
-    final baseTheme = isDark ? ThemeData.dark() : ThemeData.light();
+    final baseTheme = themeProvider.isDark ? ThemeData.dark() : ThemeData.light();
 
     final theme = baseTheme.copyWith(
       scaffoldBackgroundColor: colors.background,
@@ -79,18 +88,9 @@ class XiaoYueLiangApp extends StatelessWidget {
         surface: colors.cardSurface,
         onSurface: colors.mainText,
       ),
-      dialogTheme: DialogTheme(
-        backgroundColor: colors.cardSurface,
-        titleTextStyle: TextStyle(
-          fontFamily: 'NotoSerifSC',
-          fontWeight: FontWeight.w700,
-          fontSize: 17,
-          color: colors.mainText,
-        ),
-      ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: colors.accent,
-        contentTextStyle: TextStyle(
+        contentTextStyle: const TextStyle(
           fontFamily: 'NotoSansSC',
           fontSize: 14,
           color: Colors.white,
@@ -99,7 +99,7 @@ class XiaoYueLiangApp extends StatelessWidget {
     );
 
     return MaterialApp(
-      title: '小月亮',
+      title: '月下窗',
       theme: theme,
       darkTheme: theme,
       themeMode: themeProvider.themeMode,
