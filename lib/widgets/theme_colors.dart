@@ -122,7 +122,7 @@ class AppColors extends ThemeExtension<AppColors> {
     tabBg:           _nightTabBg,
     tabBorder:       _nightTabBorder,
     bodyBg:          _nightBodyBg,
-    gradientCenter:  _nightCard.withAlpha(217),
+    gradientCenter:  Color(0xD9E6ECF4),
   );
 
   // ───────────────────── ThemeExtension 实现 ─────────────────────
