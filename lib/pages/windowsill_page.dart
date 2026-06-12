@@ -7,6 +7,7 @@ import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 import 'hub_page.dart';
+import 'settings_page.dart';
 
 class WindowsillPage extends StatefulWidget {
   const WindowsillPage({super.key});
@@ -520,6 +521,8 @@ class _WindowsillPageState extends State<WindowsillPage> {
       onTap: () {
         if (label == '客厅') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const HubPage()));
+        } else if (label == '设置') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
         }
       },
       child: Column(

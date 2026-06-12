@@ -7,6 +7,7 @@ import 'diary_page.dart';
 import 'bookshelf_page.dart';
 import 'todo_page.dart';
 import 'echo_wall_page.dart';
+import 'settings_page.dart';
 
 class HubPage extends StatelessWidget {
   const HubPage({super.key});
@@ -197,7 +198,9 @@ class HubPage extends StatelessWidget {
                 Navigator.pop(context);
               }),
               _buildNavItem(context, colors, Icons.weekend, '客厅', true, () {}),
-              _buildNavItem(context, colors, Icons.settings, '设置', false, () {}),
+              _buildNavItem(context, colors, Icons.settings, '设置', false, () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
+              }),
             ],
           ),
         ),

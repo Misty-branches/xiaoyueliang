@@ -6,6 +6,7 @@ import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 import 'provider_detail_page.dart';
+import 'hub_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -409,7 +410,9 @@ class SettingsPage extends StatelessWidget {
               _buildNavItem(context, colors, Icons.home, '窗台', false, () {
                 Navigator.pop(context);
               }),
-              _buildNavItem(context, colors, Icons.weekend, '客厅', false, () {}),
+              _buildNavItem(context, colors, Icons.weekend, '客厅', false, () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HubPage()));
+              }),
               _buildNavItem(context, colors, Icons.settings, '设置', true, () {}),
             ],
           ),
