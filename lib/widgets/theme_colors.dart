@@ -43,15 +43,18 @@ const _nightBodyBg        = Color(0xFFBECEDE);  // night-body-bg
 /// 主题色系扩展
 class AppColors extends ThemeExtension<AppColors> {
   final Color background;      // 页面背景
-  final Color cardSurface;     // 卡片背景
-  final Color accent;          // 主色（按钮、图标）
+  final Color cardSurface;     // 卡片背景（纯白）
+  final Color cardBase;        // 卡片次级底色（输入框、筛选按钮、气泡底）
+  final Color accent;          // 主色（按钮、图标、标签）
   final Color accentLight;     // 主色浅底（头像背景）
   final Color accentDeep;      // 主色深（按下态）
   final Color accentWarm;      // 暖色强调（目标渐变、日记）
+  final Color tag;             // 标签色（同主色，用于标签背景和文字）
   final Color mainText;        // 主文字
   final Color secondaryText;   // 副文字
   final Color mutedText;       // 弱文字（标签、注释）
   final Color border;          // 边框
+  final Color shadow;          // 阴影色
   final Color selectedBg;      // 选中背景
   final Color tabBg;           // 底部导航栏背景
   final Color tabBorder;       // 底部导航栏边框
@@ -61,14 +64,17 @@ class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
     required this.background,
     required this.cardSurface,
+    required this.cardBase,
     required this.accent,
     required this.accentLight,
     required this.accentDeep,
     required this.accentWarm,
+    required this.tag,
     required this.mainText,
     required this.secondaryText,
     required this.mutedText,
     required this.border,
+    required this.shadow,
     required this.selectedBg,
     required this.tabBg,
     required this.tabBorder,
@@ -80,14 +86,17 @@ class AppColors extends ThemeExtension<AppColors> {
   static const day = AppColors(
     background:      _dayBg,
     cardSurface:     _dayCard,
+    cardBase:        _dayPrimaryLight, // #E2EDE6 — 输入框/筛选按钮底色
     accent:          _dayPrimary,
     accentLight:     _dayPrimaryLight,
     accentDeep:      _dayPrimaryDeep,
     accentWarm:      _dayWarmAccent,
+    tag:             _dayPrimary,      // 标签色 = 主色 #7DBA98
     mainText:        _dayText,
     secondaryText:   _dayTextSecondary,
     mutedText:       _dayTextMuted,
     border:          _dayBorder,
+    shadow:          Color(0x0A000000),
     selectedBg:      _daySelected,
     tabBg:           _dayTabBg,
     tabBorder:       _dayTabBorder,
@@ -98,19 +107,22 @@ class AppColors extends ThemeExtension<AppColors> {
   static const night = AppColors(
     background:      _nightBg,
     cardSurface:     _nightCard,
+    cardBase:        Color(0xFFD6DEE8), // 夜间卡片次级底色
     accent:          _nightPrimary,
     accentLight:     _nightPrimaryLight,
     accentDeep:      _nightPrimaryDeep,
     accentWarm:      _nightWarmAccent,
+    tag:             _nightPrimary,     // 标签色 = 夜间主色 #7A94B0
     mainText:        _nightText,
     secondaryText:   _nightTextSecondary,
     mutedText:       _nightTextMuted,
     border:          _nightBorder,
+    shadow:          Color(0x0A000000),
     selectedBg:      _nightSelected,
     tabBg:           _nightTabBg,
     tabBorder:       _nightTabBorder,
     bodyBg:          _nightBodyBg,
-    gradientCenter:  _nightCard.withAlpha(217), // 接近日间 0.85 透明度效果
+    gradientCenter:  _nightCard.withAlpha(217),
   );
 
   // ───────────────────── ThemeExtension 实现 ─────────────────────
@@ -118,14 +130,17 @@ class AppColors extends ThemeExtension<AppColors> {
   AppColors copyWith({
     Color? background,
     Color? cardSurface,
+    Color? cardBase,
     Color? accent,
     Color? accentLight,
     Color? accentDeep,
     Color? accentWarm,
+    Color? tag,
     Color? mainText,
     Color? secondaryText,
     Color? mutedText,
     Color? border,
+    Color? shadow,
     Color? selectedBg,
     Color? tabBg,
     Color? tabBorder,
@@ -135,14 +150,17 @@ class AppColors extends ThemeExtension<AppColors> {
     return AppColors(
       background:      background      ?? this.background,
       cardSurface:     cardSurface     ?? this.cardSurface,
+      cardBase:        cardBase        ?? this.cardBase,
       accent:          accent          ?? this.accent,
       accentLight:     accentLight     ?? this.accentLight,
       accentDeep:      accentDeep      ?? this.accentDeep,
       accentWarm:      accentWarm      ?? this.accentWarm,
+      tag:             tag             ?? this.tag,
       mainText:        mainText        ?? this.mainText,
       secondaryText:   secondaryText   ?? this.secondaryText,
       mutedText:       mutedText       ?? this.mutedText,
       border:          border          ?? this.border,
+      shadow:          shadow          ?? this.shadow,
       selectedBg:      selectedBg      ?? this.selectedBg,
       tabBg:           tabBg           ?? this.tabBg,
       tabBorder:       tabBorder       ?? this.tabBorder,
@@ -157,14 +175,17 @@ class AppColors extends ThemeExtension<AppColors> {
     return AppColors(
       background:      Color.lerp(background,      other.background,      t)!,
       cardSurface:     Color.lerp(cardSurface,     other.cardSurface,     t)!,
+      cardBase:        Color.lerp(cardBase,        other.cardBase,        t)!,
       accent:          Color.lerp(accent,          other.accent,          t)!,
       accentLight:     Color.lerp(accentLight,     other.accentLight,     t)!,
       accentDeep:      Color.lerp(accentDeep,      other.accentDeep,      t)!,
       accentWarm:      Color.lerp(accentWarm,      other.accentWarm,      t)!,
+      tag:             Color.lerp(tag,             other.tag,             t)!,
       mainText:        Color.lerp(mainText,        other.mainText,        t)!,
       secondaryText:   Color.lerp(secondaryText,   other.secondaryText,   t)!,
       mutedText:       Color.lerp(mutedText,       other.mutedText,       t)!,
       border:          Color.lerp(border,          other.border,          t)!,
+      shadow:          Color.lerp(shadow,          other.shadow,          t)!,
       selectedBg:      Color.lerp(selectedBg,      other.selectedBg,      t)!,
       tabBg:           Color.lerp(tabBg,           other.tabBg,           t)!,
       tabBorder:       Color.lerp(tabBorder,       other.tabBorder,       t)!,
