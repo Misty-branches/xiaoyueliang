@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
-import '../providers/diary_provider.dart';
-import '../providers/todo_provider.dart';
-import '../providers/chat_provider.dart';
+import '../providers/daily_message_provider.dart';
+import '../providers/shared_goals_provider.dart';
+import '../providers/recent_activity_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/moon_icon.dart';
@@ -24,8 +24,9 @@ class _WindowsillPageState extends State<WindowsillPage> {
     super.initState();
     _updateGreeting();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DiaryProvider>().loadEntries();
-      context.read<TodoProvider>().loadTodos();
+      context.read<DailyMessageProvider>().loadMessage();
+      context.read<SharedGoalsProvider>().loadGoals();
+      context.read<RecentActivityProvider>().loadActivities();
     });
   }
 
@@ -70,7 +71,6 @@ class _WindowsillPageState extends State<WindowsillPage> {
                         color: colors.mainText,
                       ),
                     ),
-                    // Settings icon removed from here — moved to hub page
                     const SizedBox(width: 24),
                   ],
                 ),
@@ -95,12 +95,14 @@ class _WindowsillPageState extends State<WindowsillPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Data cards
-              _buildTodayThoughtCard(context, colors),
+              // Data cards - 今日寄语
+              _buildDailyMessageCard(context, colors),
               const SizedBox(height: 12),
-              _buildTodoOverviewCard(context, colors),
+              // 共同目标
+              _buildSharedGoalsCard(context, colors),
               const SizedBox(height: 12),
-              _buildRecentChatCard(context, colors),
+              // 最近活动
+              _buildRecentActivityCard(context, colors),
               const SizedBox(height: 16),
               // Shortcut to hub
               Padding(
@@ -157,12 +159,11 @@ class _WindowsillPageState extends State<WindowsillPage> {
     );
   }
 
-  Widget _buildTodayThoughtCard(BuildContext context, AppColors colors) {
+  Widget _buildDailyMessageCard(BuildContext context, AppColors colors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Consumer<DiaryProvider>(
-        builder: (context, diary, _) {
-          final latest = diary.latestEntry;
+      child: Consumer<DailyMessageProvider>(
+        builder: (context, provider, _) {
           return GlassCard(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -170,10 +171,10 @@ class _WindowsillPageState extends State<WindowsillPage> {
               children: [
                 Row(
                   children: [
-                    ThemeColors.starIcon(context, size: 18),
+                    Icon(Icons.wb_sunny_outlined, size: 18, color: colors.accentWarm),
                     const SizedBox(width: 8),
                     Text(
-                      '今日随想',
+                      '今日寄语',
                       style: TextStyle(
                         fontFamily: 'NotoSansSC',
                         fontWeight: FontWeight.w600,
@@ -181,18 +182,38 @@ class _WindowsillPageState extends State<WindowsillPage> {
                         color: colors.mainText,
                       ),
                     ),
+                    const Spacer(),
+                    Text(
+                      'From Hermes',
+                      style: TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontSize: 11,
+                        color: colors.secondaryText,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  latest != null
-                      ? '${latest.title}\n${latest.content.length > 60 ? '${latest.content.substring(0, 60)}...' : latest.content}'
-                      : '还没有记录 🌙',
+                  provider.hasMessage
+                      ? provider.message!.message
+                      : '今天也要开开心心的呀 ☀️',
                   style: TextStyle(
                     fontFamily: 'NotoSansSC',
                     fontSize: 14,
                     color: colors.secondaryText,
                     height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  provider.hasMessage
+                      ? '${provider.message!.generatedAt.month}/${provider.message!.generatedAt.day}, ${provider.message!.generatedAt.year}'
+                      : '${DateTime.now().month}/${DateTime.now().day}, ${DateTime.now().year}',
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontSize: 11,
+                    color: colors.secondaryText,
                   ),
                 ),
               ],
@@ -203,12 +224,12 @@ class _WindowsillPageState extends State<WindowsillPage> {
     );
   }
 
-  Widget _buildTodoOverviewCard(BuildContext context, AppColors colors) {
+  Widget _buildSharedGoalsCard(BuildContext context, AppColors colors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Consumer<TodoProvider>(
-        builder: (context, todoProv, _) {
-          final incompleteCount = todoProv.incompleteCount;
+      child: Consumer<SharedGoalsProvider>(
+        builder: (context, provider, _) {
+          final goal = provider.activeGoals.isNotEmpty ? provider.activeGoals.first : null;
           return GlassCard(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -216,10 +237,10 @@ class _WindowsillPageState extends State<WindowsillPage> {
               children: [
                 Row(
                   children: [
-                    ThemeColors.todoIcon(context, size: 18),
+                    Icon(Icons.flag_outlined, size: 18, color: colors.accent),
                     const SizedBox(width: 8),
                     Text(
-                      '待办概览',
+                      '共同目标',
                       style: TextStyle(
                         fontFamily: 'NotoSansSC',
                         fontWeight: FontWeight.w600,
@@ -230,17 +251,51 @@ class _WindowsillPageState extends State<WindowsillPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  incompleteCount > 0
-                      ? '$incompleteCount 项待完成'
-                      : '今天都做完啦 ✅',
-                  style: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontSize: 14,
-                    color: colors.secondaryText,
-                    height: 1.6,
+                if (goal != null) ...[
+                  Text(
+                    goal.title,
+                    style: TextStyle(
+                      fontFamily: 'NotoSansSC',
+                      fontSize: 14,
+                      color: colors.mainText,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: goal.progressPercent,
+                            backgroundColor: colors.border,
+                            valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                            minHeight: 8,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '${goal.progress} / ${goal.total}',
+                        style: TextStyle(
+                          fontFamily: 'NotoSansSC',
+                          fontSize: 12,
+                          color: colors.secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    '暂无共同目标',
+                    style: TextStyle(
+                      fontFamily: 'NotoSansSC',
+                      fontSize: 14,
+                      color: colors.secondaryText,
+                    ),
+                  ),
+                ],
               ],
             ),
           );
@@ -249,12 +304,12 @@ class _WindowsillPageState extends State<WindowsillPage> {
     );
   }
 
-  Widget _buildRecentChatCard(BuildContext context, AppColors colors) {
+  Widget _buildRecentActivityCard(BuildContext context, AppColors colors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Consumer<ChatProvider>(
-        builder: (context, chat, _) {
-          final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
+      child: Consumer<RecentActivityProvider>(
+        builder: (context, provider, _) {
+          final activities = provider.recentActivities;
           return GlassCard(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -262,10 +317,10 @@ class _WindowsillPageState extends State<WindowsillPage> {
               children: [
                 Row(
                   children: [
-                    ThemeColors.chatIcon(context, size: 18),
+                    Icon(Icons.access_time_outlined, size: 18, color: colors.accent),
                     const SizedBox(width: 8),
                     Text(
-                      '最近聊天',
+                      '最近活动',
                       style: TextStyle(
                         fontFamily: 'NotoSansSC',
                         fontWeight: FontWeight.w600,
@@ -276,17 +331,84 @@ class _WindowsillPageState extends State<WindowsillPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  lastMsg != null
-                      ? '${lastMsg.content.length > 20 ? '${lastMsg.content.substring(0, 20)}...' : lastMsg.content}'
-                      : '和小月亮说说话吧',
-                  style: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontSize: 14,
-                    color: colors.secondaryText,
-                    height: 1.6,
+                if (activities.isEmpty) ...[
+                  Text(
+                    '暂无活动记录',
+                    style: TextStyle(
+                      fontFamily: 'NotoSansSC',
+                      fontSize: 14,
+                      color: colors.secondaryText,
+                    ),
                   ),
-                ),
+                ] else ...[
+                  ...activities.map((activity) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(top: 6, right: 10),
+                          decoration: BoxDecoration(
+                            color: activity.type == 'realtime' 
+                                ? colors.accent 
+                                : colors.accentWarm,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                activity.text,
+                                style: TextStyle(
+                                  fontFamily: 'NotoSansSC',
+                                  fontSize: 13,
+                                  color: colors.mainText,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: activity.type == 'realtime'
+                                          ? colors.accent.withOpacity(0.1)
+                                          : colors.accentWarm.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      activity.type == 'realtime' ? '实时' : '定时',
+                                      style: TextStyle(
+                                        fontFamily: 'NotoSansSC',
+                                        fontSize: 10,
+                                        color: activity.type == 'realtime'
+                                            ? colors.accent
+                                            : colors.accentWarm,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    activity.timeStr,
+                                    style: TextStyle(
+                                      fontFamily: 'NotoSansSC',
+                                      fontSize: 11,
+                                      color: colors.secondaryText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
               ],
             ),
           );

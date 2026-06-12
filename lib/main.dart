@@ -12,6 +12,10 @@ import 'providers/letter_provider.dart';
 import 'providers/note_provider.dart';
 import 'providers/collection_provider.dart';
 import 'providers/project_provider.dart';
+import 'providers/daily_message_provider.dart';
+import 'providers/shared_goals_provider.dart';
+import 'providers/recent_activity_provider.dart';
+import 'providers/provider_config_provider.dart';
 import 'widgets/theme_colors.dart';
 import 'pages/windowsill_page.dart';
 
@@ -31,6 +35,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => NoteProvider()..loadNotes()),
         ChangeNotifierProvider(create: (_) => CollectionProvider()..loadItems()),
         ChangeNotifierProvider(create: (_) => ProjectProvider()..loadProjects()),
+        ChangeNotifierProvider(create: (_) => DailyMessageProvider()..loadMessage()),
+        ChangeNotifierProvider(create: (_) => SharedGoalsProvider()..loadGoals()),
+        ChangeNotifierProvider(create: (_) => RecentActivityProvider()..loadActivities()),
+        ChangeNotifierProvider(create: (_) => ProviderConfigProvider()..loadProviders()),
       ],
       child: const XiaoYueLiangApp(),
     ),
