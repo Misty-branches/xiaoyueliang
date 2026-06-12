@@ -129,7 +129,7 @@ class HubPage extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 1.2,
+        childAspectRatio: 1.1,
       ),
       itemCount: rooms.length,
       itemBuilder: (context, index) => _buildRoomCard(context, colors, rooms[index]),
