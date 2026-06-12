@@ -52,7 +52,7 @@ class TodoPage extends StatelessWidget {
                       ],
                     ),
             ),
-            _BottomNav(colors: colors, context: context),
+
           ],
         ),
       ),

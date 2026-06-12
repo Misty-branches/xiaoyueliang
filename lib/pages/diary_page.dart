@@ -30,7 +30,7 @@ class DiaryPage extends StatelessWidget {
                       },
                     ),
             ),
-            _BottomNav(colors: colors, context: context),
+
           ],
         ),
       ),

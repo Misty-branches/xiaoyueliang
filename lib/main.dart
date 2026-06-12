@@ -23,7 +23,7 @@ import 'providers/provider_config_provider.dart';
 import 'widgets/theme_colors.dart';
 
 // Pages
-import 'pages/windowsill_page.dart';
+import 'pages/shell_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,7 +104,7 @@ class MoonlitWindowApp extends StatelessWidget {
       darkTheme: theme,
       themeMode: themeProvider.themeMode,
       debugShowCheckedModeBanner: false,
-      home: const WindowsillPage(),
+      home: const ShellPage(),
     );
   }
 }

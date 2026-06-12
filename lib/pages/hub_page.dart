@@ -10,7 +10,8 @@ import 'echo_wall_page.dart';
 import 'settings_page.dart';
 
 class HubPage extends StatelessWidget {
-  const HubPage({super.key});
+  final bool embedded;
+  const HubPage({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +51,7 @@ class HubPage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context, colors),
+      bottomNavigationBar: embedded ? null : _buildBottomNav(context, colors),
     );
   }
 

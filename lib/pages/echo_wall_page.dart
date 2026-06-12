@@ -30,7 +30,7 @@ class EchoWallPage extends StatelessWidget {
                       },
                     ),
             ),
-            _BottomNav(colors: colors, context: context),
+
           ],
         ),
       ),

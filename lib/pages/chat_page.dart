@@ -40,7 +40,7 @@ class ChatPage extends StatelessWidget {
                     ),
             ),
             // ── 底部导航 ──
-            _BottomNav(colors: colors, context: context),
+
           ],
         ),
       ),

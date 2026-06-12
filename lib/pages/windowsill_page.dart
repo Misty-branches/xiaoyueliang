@@ -10,7 +10,8 @@ import 'hub_page.dart';
 import 'settings_page.dart';
 
 class WindowsillPage extends StatefulWidget {
-  const WindowsillPage({super.key});
+  final bool embedded;
+  const WindowsillPage({super.key, this.embedded = false});
 
   @override
   State<WindowsillPage> createState() => _WindowsillPageState();
@@ -65,7 +66,7 @@ class _WindowsillPageState extends State<WindowsillPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(colors),
+      bottomNavigationBar: widget.embedded ? null : _buildBottomNav(colors),
     );
   }
 

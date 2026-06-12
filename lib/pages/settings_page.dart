@@ -9,7 +9,8 @@ import 'provider_detail_page.dart';
 import 'hub_page.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  final bool embedded;
+  const SettingsPage({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +61,7 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context, colors),
+      bottomNavigationBar: embedded ? null : _buildBottomNav(context, colors),
     );
   }
 

@@ -30,7 +30,7 @@ class BookshelfPage extends StatelessWidget {
                       },
                     ),
             ),
-            _BottomNav(colors: colors, context: context),
+
           ],
         ),
       ),
