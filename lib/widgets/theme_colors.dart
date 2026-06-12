@@ -1,120 +1,175 @@
 import 'package:flutter/material.dart';
 
+// ═══════════════════════════════════════════════
+// 主题色系 — 完全对照 DESIGN.md 规范
+// ═══════════════════════════════════════════════
+// 日间：雾绿清透（纯白卡片 + 鼠尾草绿）
+// 夜间：蓝灰清透（月光银蓝）
+// 所有色值来自 ~/.hermes/projects/xiaoyueliang/DESIGN.md
+
+// ───────────────────── 日间色板 ─────────────────────
+const _dayBg            = Color(0xFFEEF3EC);  // bg
+const _dayCard          = Color(0xFFFFFFFF);  // card — 纯白
+const _dayBorder        = Color(0xFFDCE4DA);  // card-border
+const _dayPrimary       = Color(0xFF7DBA98);  // primary — 鼠尾草绿
+const _dayPrimaryLight  = Color(0xFFE2EDE6);  // primary-light
+const _dayPrimaryDeep   = Color(0xFF5A9A78);  // primary-deep
+const _dayText          = Color(0xFF2A3830);  // text — 暖深绿
+const _dayTextSecondary = Color(0xFF648470);  // text-secondary
+const _dayTextMuted     = Color(0xFF8EAA96);  // text-muted
+const _daySelected      = Color(0xFFE8F0E6);  // selected-bg
+const _dayWarmAccent    = Color(0xFFD4816A);  // warm-accent
+const _dayTabBg         = Color(0xFFFFFFFF);  // tab-bg
+const _dayTabBorder     = Color(0xFFDCE4DA);  // tab-border
+const _dayBodyBg        = Color(0xFFE2EAE0);  // body-bg（手机外框背景）
+const _dayGradientCenter = Color(0xD9FFFFFF); // gradient-center: rgba(255,255,255,0.85)
+
+// ───────────────────── 夜间色板 ─────────────────────
+const _nightBg            = Color(0xFFCCD8E6);  // night-bg
+const _nightCard          = Color(0xFFE6ECF4);  // night-card
+const _nightBorder        = Color(0xFFC2D0DE);  // night-card-border
+const _nightPrimary       = Color(0xFF7A94B0);  // night-primary
+const _nightPrimaryLight  = Color(0xFFCCD8E6);  // night-primary-light
+const _nightPrimaryDeep   = Color(0xFF5A7088);  // night-primary-deep
+const _nightText          = Color(0xFF1A2838);  // night-text
+const _nightTextSecondary = Color(0xFF567088);  // night-text-secondary
+const _nightTextMuted     = Color(0xFF869EB6);  // night-text-muted
+const _nightSelected      = Color(0xFFCCD8E6);  // night-selected
+const _nightWarmAccent    = Color(0xFFD4816A);  // 夜间暖色同日间
+const _nightTabBg         = Color(0xFFE6ECF4);  // night-tab-bg
+const _nightTabBorder     = Color(0xFFC2D0DE);  // night-tab-border
+const _nightBodyBg        = Color(0xFFBECEDE);  // night-body-bg
+
+/// 主题色系扩展
 class AppColors extends ThemeExtension<AppColors> {
-  final Color background;
-  final Color cardSurface;
-  final Color cardBase;
-  final Color mainText;
-  final Color secondaryText;
-  final Color mutedText;
-  final Color accent;
-  final Color accentLight;
-  final Color accentDeep;
-  final Color accentWarm;
-  final Color tag;
-  final Color border;
-  final Color shadow;
+  final Color background;      // 页面背景
+  final Color cardSurface;     // 卡片背景
+  final Color accent;          // 主色（按钮、图标）
+  final Color accentLight;     // 主色浅底（头像背景）
+  final Color accentDeep;      // 主色深（按下态）
+  final Color accentWarm;      // 暖色强调（目标渐变、日记）
+  final Color mainText;        // 主文字
+  final Color secondaryText;   // 副文字
+  final Color mutedText;       // 弱文字（标签、注释）
+  final Color border;          // 边框
+  final Color selectedBg;      // 选中背景
+  final Color tabBg;           // 底部导航栏背景
+  final Color tabBorder;       // 底部导航栏边框
+  final Color bodyBg;          // 手机外框背景
+  final Color gradientCenter;  // 径向渐变中心色
 
   const AppColors({
     required this.background,
     required this.cardSurface,
-    required this.cardBase,
-    required this.mainText,
-    required this.secondaryText,
-    required this.mutedText,
     required this.accent,
     required this.accentLight,
     required this.accentDeep,
     required this.accentWarm,
-    required this.tag,
+    required this.mainText,
+    required this.secondaryText,
+    required this.mutedText,
     required this.border,
-    required this.shadow,
+    required this.selectedBg,
+    required this.tabBg,
+    required this.tabBorder,
+    required this.bodyBg,
+    required this.gradientCenter,
   });
 
-  // 日间主题 — 绿色/薄荷色系，清新养眼
-  static const AppColors light = AppColors(
-    background: Color(0xFFEEF3EC),
-    cardSurface: Color(0xFFFFFFFF),
-    cardBase: Color(0xFFE2EDE6),
-    mainText: Color(0xFF2A3830),
-    secondaryText: Color(0xFF648470),
-    mutedText: Color(0xFF8EAA96),
-    accent: Color(0xFF7DBA98),
-    accentLight: Color(0xFFE2EDE6),
-    accentDeep: Color(0xFF5A9A78),
-    accentWarm: Color(0xFFD4816A),
-    tag: Color(0xFF7DBA98),
-    border: Color(0xFFDCE4DA),
-    shadow: Color(0x0A000000),
+  // ───────────────────── 色板实例 ─────────────────────
+  static const day = AppColors(
+    background:      _dayBg,
+    cardSurface:     _dayCard,
+    accent:          _dayPrimary,
+    accentLight:     _dayPrimaryLight,
+    accentDeep:      _dayPrimaryDeep,
+    accentWarm:      _dayWarmAccent,
+    mainText:        _dayText,
+    secondaryText:   _dayTextSecondary,
+    mutedText:       _dayTextMuted,
+    border:          _dayBorder,
+    selectedBg:      _daySelected,
+    tabBg:           _dayTabBg,
+    tabBorder:       _dayTabBorder,
+    bodyBg:          _dayBodyBg,
+    gradientCenter:  _dayGradientCenter,
   );
 
-  // 夜间主题 — 蓝灰色系
-  static const AppColors dark = AppColors(
-    background: Color(0xFFCCD8E6),
-    cardSurface: Color(0xFFE6ECF4),
-    cardBase: Color(0xFFD6DEE8),
-    mainText: Color(0xFF1A2838),
-    secondaryText: Color(0xFF567088),
-    mutedText: Color(0xFF869EB6),
-    accent: Color(0xFF7A94B0),
-    accentLight: Color(0xFFCCD8E6),
-    accentDeep: Color(0xFF5A7088),
-    accentWarm: Color(0xFFE8A87C),
-    tag: Color(0xFF7A94B0),
-    border: Color(0xFFC2D0DE),
-    shadow: Color(0x0A000000),
+  static const night = AppColors(
+    background:      _nightBg,
+    cardSurface:     _nightCard,
+    accent:          _nightPrimary,
+    accentLight:     _nightPrimaryLight,
+    accentDeep:      _nightPrimaryDeep,
+    accentWarm:      _nightWarmAccent,
+    mainText:        _nightText,
+    secondaryText:   _nightTextSecondary,
+    mutedText:       _nightTextMuted,
+    border:          _nightBorder,
+    selectedBg:      _nightSelected,
+    tabBg:           _nightTabBg,
+    tabBorder:       _nightTabBorder,
+    bodyBg:          _nightBodyBg,
+    gradientCenter:  _nightCard.withAlpha(217), // 接近日间 0.85 透明度效果
   );
 
+  // ───────────────────── ThemeExtension 实现 ─────────────────────
   @override
-  ThemeExtension<AppColors> copyWith({
+  AppColors copyWith({
     Color? background,
     Color? cardSurface,
-    Color? cardBase,
-    Color? mainText,
-    Color? secondaryText,
-    Color? mutedText,
     Color? accent,
     Color? accentLight,
     Color? accentDeep,
     Color? accentWarm,
-    Color? tag,
+    Color? mainText,
+    Color? secondaryText,
+    Color? mutedText,
     Color? border,
-    Color? shadow,
+    Color? selectedBg,
+    Color? tabBg,
+    Color? tabBorder,
+    Color? bodyBg,
+    Color? gradientCenter,
   }) {
     return AppColors(
-      background: background ?? this.background,
-      cardSurface: cardSurface ?? this.cardSurface,
-      cardBase: cardBase ?? this.cardBase,
-      mainText: mainText ?? this.mainText,
-      secondaryText: secondaryText ?? this.secondaryText,
-      mutedText: mutedText ?? this.mutedText,
-      accent: accent ?? this.accent,
-      accentLight: accentLight ?? this.accentLight,
-      accentDeep: accentDeep ?? this.accentDeep,
-      accentWarm: accentWarm ?? this.accentWarm,
-      tag: tag ?? this.tag,
-      border: border ?? this.border,
-      shadow: shadow ?? this.shadow,
+      background:      background      ?? this.background,
+      cardSurface:     cardSurface     ?? this.cardSurface,
+      accent:          accent          ?? this.accent,
+      accentLight:     accentLight     ?? this.accentLight,
+      accentDeep:      accentDeep      ?? this.accentDeep,
+      accentWarm:      accentWarm      ?? this.accentWarm,
+      mainText:        mainText        ?? this.mainText,
+      secondaryText:   secondaryText   ?? this.secondaryText,
+      mutedText:       mutedText       ?? this.mutedText,
+      border:          border          ?? this.border,
+      selectedBg:      selectedBg      ?? this.selectedBg,
+      tabBg:           tabBg           ?? this.tabBg,
+      tabBorder:       tabBorder       ?? this.tabBorder,
+      bodyBg:          bodyBg          ?? this.bodyBg,
+      gradientCenter:  gradientCenter  ?? this.gradientCenter,
     );
   }
 
   @override
-  ThemeExtension<AppColors> lerp(ThemeExtension<AppColors>? other, double t) {
+  AppColors lerp(ThemeExtension<AppColors>? other, double t) {
     if (other is! AppColors) return this;
     return AppColors(
-      background: Color.lerp(background, other.background, t)!,
-      cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
-      cardBase: Color.lerp(cardBase, other.cardBase, t)!,
-      mainText: Color.lerp(mainText, other.mainText, t)!,
-      secondaryText: Color.lerp(secondaryText, other.secondaryText, t)!,
-      mutedText: Color.lerp(mutedText, other.mutedText, t)!,
-      accent: Color.lerp(accent, other.accent, t)!,
-      accentLight: Color.lerp(accentLight, other.accentLight, t)!,
-      accentDeep: Color.lerp(accentDeep, other.accentDeep, t)!,
-      accentWarm: Color.lerp(accentWarm, other.accentWarm, t)!,
-      tag: Color.lerp(tag, other.tag, t)!,
-      border: Color.lerp(border, other.border, t)!,
-      shadow: Color.lerp(shadow, other.shadow, t)!,
+      background:      Color.lerp(background,      other.background,      t)!,
+      cardSurface:     Color.lerp(cardSurface,     other.cardSurface,     t)!,
+      accent:          Color.lerp(accent,          other.accent,          t)!,
+      accentLight:     Color.lerp(accentLight,     other.accentLight,     t)!,
+      accentDeep:      Color.lerp(accentDeep,      other.accentDeep,      t)!,
+      accentWarm:      Color.lerp(accentWarm,      other.accentWarm,      t)!,
+      mainText:        Color.lerp(mainText,        other.mainText,        t)!,
+      secondaryText:   Color.lerp(secondaryText,   other.secondaryText,   t)!,
+      mutedText:       Color.lerp(mutedText,       other.mutedText,       t)!,
+      border:          Color.lerp(border,          other.border,          t)!,
+      selectedBg:      Color.lerp(selectedBg,      other.selectedBg,      t)!,
+      tabBg:           Color.lerp(tabBg,           other.tabBg,           t)!,
+      tabBorder:       Color.lerp(tabBorder,       other.tabBorder,       t)!,
+      bodyBg:          Color.lerp(bodyBg,          other.bodyBg,          t)!,
+      gradientCenter:  Color.lerp(gradientCenter,  other.gradientCenter,  t)!,
     );
   }
 }
