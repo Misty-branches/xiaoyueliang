@@ -6,10 +6,14 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color cardBase;
   final Color mainText;
   final Color secondaryText;
+  final Color mutedText;
   final Color accent;
+  final Color accentLight;
+  final Color accentDeep;
   final Color accentWarm;
   final Color tag;
   final Color border;
+  final Color shadow;
 
   const AppColors({
     required this.background,
@@ -17,34 +21,48 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.cardBase,
     required this.mainText,
     required this.secondaryText,
+    required this.mutedText,
     required this.accent,
+    required this.accentLight,
+    required this.accentDeep,
     required this.accentWarm,
     required this.tag,
     required this.border,
+    required this.shadow,
   });
 
+  // 日间主题 — 绿色/薄荷色系，清新养眼
   static const AppColors light = AppColors(
-    background: Color(0xFFF2F0EB),
+    background: Color(0xFFEEF3EC),
     cardSurface: Color(0xFFFFFFFF),
-    cardBase: Color(0xFFEDE9E1),
-    mainText: Color(0xFF1A1A2E),
-    secondaryText: Color(0xFF8A9BB0),
-    accent: Color(0xFF7BA8D0),
-    accentWarm: Color(0xFFC9A96E),
-    tag: Color(0xFFD4A96E),
-    border: Color(0xFFD8D4CC),
+    cardBase: Color(0xFFE2EDE6),
+    mainText: Color(0xFF2A3830),
+    secondaryText: Color(0xFF648470),
+    mutedText: Color(0xFF8EAA96),
+    accent: Color(0xFF7DBA98),
+    accentLight: Color(0xFFE2EDE6),
+    accentDeep: Color(0xFF5A9A78),
+    accentWarm: Color(0xFFD4816A),
+    tag: Color(0xFF7DBA98),
+    border: Color(0xFFDCE4DA),
+    shadow: Color(0x0A000000),
   );
 
+  // 夜间主题 — 蓝灰色系
   static const AppColors dark = AppColors(
-    background: Color(0xFF162B42),
-    cardSurface: Color(0xFF1E3550),
-    cardBase: Color(0xFF26405A),
-    mainText: Color(0xFFF0F4F8),
-    secondaryText: Color(0xFFA0B8CC),
-    accent: Color(0xFF7BA8D0),
-    accentWarm: Color(0xFFF5D88A),
-    tag: Color(0xFFF0D8A8),
-    border: Color(0xFF2E4A68),
+    background: Color(0xFFCCD8E6),
+    cardSurface: Color(0xFFE6ECF4),
+    cardBase: Color(0xFFD6DEE8),
+    mainText: Color(0xFF1A2838),
+    secondaryText: Color(0xFF567088),
+    mutedText: Color(0xFF869EB6),
+    accent: Color(0xFF7A94B0),
+    accentLight: Color(0xFFCCD8E6),
+    accentDeep: Color(0xFF5A7088),
+    accentWarm: Color(0xFFE8A87C),
+    tag: Color(0xFF7A94B0),
+    border: Color(0xFFC2D0DE),
+    shadow: Color(0x0A000000),
   );
 
   @override
@@ -54,10 +72,14 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? cardBase,
     Color? mainText,
     Color? secondaryText,
+    Color? mutedText,
     Color? accent,
+    Color? accentLight,
+    Color? accentDeep,
     Color? accentWarm,
     Color? tag,
     Color? border,
+    Color? shadow,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -65,10 +87,14 @@ class AppColors extends ThemeExtension<AppColors> {
       cardBase: cardBase ?? this.cardBase,
       mainText: mainText ?? this.mainText,
       secondaryText: secondaryText ?? this.secondaryText,
+      mutedText: mutedText ?? this.mutedText,
       accent: accent ?? this.accent,
+      accentLight: accentLight ?? this.accentLight,
+      accentDeep: accentDeep ?? this.accentDeep,
       accentWarm: accentWarm ?? this.accentWarm,
       tag: tag ?? this.tag,
       border: border ?? this.border,
+      shadow: shadow ?? this.shadow,
     );
   }
 
@@ -81,10 +107,88 @@ class AppColors extends ThemeExtension<AppColors> {
       cardBase: Color.lerp(cardBase, other.cardBase, t)!,
       mainText: Color.lerp(mainText, other.mainText, t)!,
       secondaryText: Color.lerp(secondaryText, other.secondaryText, t)!,
+      mutedText: Color.lerp(mutedText, other.mutedText, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
+      accentLight: Color.lerp(accentLight, other.accentLight, t)!,
+      accentDeep: Color.lerp(accentDeep, other.accentDeep, t)!,
       accentWarm: Color.lerp(accentWarm, other.accentWarm, t)!,
       tag: Color.lerp(tag, other.tag, t)!,
       border: Color.lerp(border, other.border, t)!,
+      shadow: Color.lerp(shadow, other.shadow, t)!,
+    );
+  }
+
+  // 辅助方法
+  static Widget moonIcon(BuildContext context, {double size = 24}) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: colors.accentLight,
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Icon(
+          Icons.nightlight_round,
+          size: size * 0.6,
+          color: colors.accent,
+        ),
+      ),
+    );
+  }
+
+  static Widget sunIcon(BuildContext context, {double size = 24}) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Icon(
+      Icons.wb_sunny_outlined,
+      size: size,
+      color: colors.accentWarm,
+    );
+  }
+
+  static Widget starIcon(BuildContext context, {double size = 24}) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Icon(
+      Icons.star_outline,
+      size: size,
+      color: colors.accent,
+    );
+  }
+
+  static Widget todoIcon(BuildContext context, {double size = 24}) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Icon(
+      Icons.check_circle_outline,
+      size: size,
+      color: colors.accent,
+    );
+  }
+
+  static Widget chatIcon(BuildContext context, {double size = 24}) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Icon(
+      Icons.chat_bubble_outline,
+      size: size,
+      color: colors.accent,
+    );
+  }
+
+  static Widget backIcon(BuildContext context, {double size = 24}) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Icon(
+      Icons.arrow_back_ios_new,
+      size: size,
+      color: colors.mainText,
+    );
+  }
+
+  static Widget arrowRightIcon(BuildContext context, {double size = 24}) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Icon(
+      Icons.arrow_forward_ios,
+      size: size,
+      color: colors.secondaryText,
     );
   }
 }

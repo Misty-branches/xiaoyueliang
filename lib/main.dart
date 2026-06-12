@@ -102,7 +102,7 @@ class XiaoYueLiangApp extends StatelessWidget {
       title: '小月亮',
       theme: theme,
       darkTheme: theme,
-      themeMode: ThemeMode.light,
+      themeMode: themeProvider.themeMode,
       debugShowCheckedModeBanner: false,
       home: const WindowsillPage(),
     );
