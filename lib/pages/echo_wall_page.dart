@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/echo_provider.dart';
+import '../models/echo_entry.dart';
 import '../widgets/theme_colors.dart';
 
 class EchoWallPage extends StatelessWidget {

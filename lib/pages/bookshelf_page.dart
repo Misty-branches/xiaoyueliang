@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/bookshelf_provider.dart';
+import '../models/book_item.dart';
 import '../widgets/theme_colors.dart';
 
 class BookshelfPage extends StatelessWidget {

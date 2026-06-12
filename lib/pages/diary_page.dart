@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/diary_provider.dart';
+import '../models/diary_entry.dart';
 import '../widgets/theme_colors.dart';
 
 class DiaryPage extends StatelessWidget {
