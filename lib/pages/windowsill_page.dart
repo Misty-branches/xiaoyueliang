@@ -4,6 +4,7 @@ import '../providers/daily_message_provider.dart';
 import '../providers/shared_goals_provider.dart';
 import '../providers/recent_activity_provider.dart';
 import '../widgets/theme_colors.dart';
+import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 import 'hub_page.dart';
 

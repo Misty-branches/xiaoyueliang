@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/provider_config_provider.dart';
 import '../widgets/theme_colors.dart';
+import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 
 class ProviderDetailPage extends StatefulWidget {
