@@ -1,426 +1,191 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../providers/diary_provider.dart';
 import '../widgets/theme_colors.dart';
-import '../widgets/moon_icon.dart';
-import '../widgets/glass_card.dart';
-import '../models/diary_entry.dart';
-import 'package:uuid/uuid.dart';
 
-class DiaryPage extends StatefulWidget {
+class DiaryPage extends StatelessWidget {
   const DiaryPage({super.key});
 
   @override
-  State<DiaryPage> createState() => _DiaryPageState();
-}
-
-class _DiaryPageState extends State<DiaryPage> {
-  String _currentFilter = '全部';
-  // DREAM_FILTER_HIDDEN: 梦境分类已暂时隐藏，未来可在 _filters 列表中添加 '梦境' 恢复
-  final List<String> _filters = ['全部', '日记'];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DiaryProvider>().loadEntries();
-    });
-  }
-
-  Future<void> _addOrEditEntry({DiaryEntry? existing}) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DiaryEditorPage(entry: existing),
-      ),
-    );
-    if (result != null && result is DiaryEntry) {
-      await context.read<DiaryProvider>().addOrUpdateEntry(result);
-    }
-  }
-
-  Future<void> _deleteEntry(DiaryEntry entry) async {
-    await context.read<DiaryProvider>().deleteEntry(entry.id);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final diary = context.watch<DiaryProvider>();
+
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.cardSurface,
-        elevation: 0,
-        leading: IconButton(
-          icon: ThemeColors.backIcon(context),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '日记',
-          style: TextStyle(
-            fontFamily: 'NotoSerifSC',
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-            letterSpacing: 1,
-            color: colors.mainText,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: ThemeColors.plusIcon(context),
-            onPressed: () => _addOrEditEntry(),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filter tabs
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: colors.cardSurface,
-            child: Row(
-              children: _filters.map((f) {
-                final selected = f == _currentFilter;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _currentFilter = f),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: selected ? colors.accent : colors.cardBase,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        f,
-                        style: TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 10,
-                          letterSpacing: 1,
-                          color: selected ? Colors.white : colors.secondaryText,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          Expanded(
-            child: Consumer<DiaryProvider>(
-              builder: (context, diary, _) {
-                final entries = _currentFilter == '全部'
-                    ? diary.entries
-                    : diary.entries
-                        .where((e) => e.category == _currentFilter)
-                        .toList();
-                if (entries.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ThemeColors.diaryIcon(context, size: 48),
-                        const SizedBox(height: 12),
-                        Text(
-                          '还没有日记',
-                          style: TextStyle(
-                            fontFamily: 'NotoSansSC',
-                            fontSize: 14,
-                            color: colors.secondaryText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  itemCount: entries.length,
-                  itemBuilder: (context, index) {
-                    final entry = entries[index];
-                    return _buildEntryCard(context, colors, entry, index, entries.length);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEntryCard(
-      BuildContext context, AppColors colors, DiaryEntry entry, int index, int totalEntries) {
-    return Column(
-      children: [
-        GlassCard(
-          onTap: () => _addOrEditEntry(existing: entry),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.tag.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      entry.category == 'dream' ? '梦境' : '日记',
-                      style: TextStyle(
-                        fontFamily: 'NotoSansSC',
-                        fontSize: 10,
-                        letterSpacing: 1,
-                        color: colors.tag,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    DateFormat('MM/dd').format(entry.date),
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontSize: 12,
-                      color: colors.secondaryText,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _deleteEntry(entry),
-                    child: ThemeColors.trashIcon(context, size: 16),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                entry.title,
-                style: TextStyle(
-                  fontFamily: 'NotoSansSC',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  color: colors.mainText,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                entry.content.length > 100
-                    ? '${entry.content.substring(0, 100)}...'
-                    : entry.content,
-                style: TextStyle(
-                  fontFamily: 'NotoSansSC',
-                  fontSize: 14,
-                  color: colors.secondaryText,
-                  height: 1.5,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        // Dotted divider
-        if (index < totalEntries - 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: CustomPaint(
-              size: const Size(double.infinity, 1),
-              painter: _DottedLinePainter(color: colors.border),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class DiaryEditorPage extends StatefulWidget {
-  final DiaryEntry? entry;
-
-  const DiaryEditorPage({super.key, this.entry});
-
-  @override
-  State<DiaryEditorPage> createState() => _DiaryEditorPageState();
-}
-
-class _DiaryEditorPageState extends State<DiaryEditorPage> {
-  late TextEditingController _titleController;
-  late TextEditingController _contentController;
-  late String _category;
-  final _uuid = const Uuid();
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.entry?.title ?? '');
-    _contentController =
-        TextEditingController(text: widget.entry?.content ?? '');
-    _category = widget.entry?.category ?? 'diary';
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.cardSurface,
-        elevation: 0,
-        leading: IconButton(
-          icon: ThemeColors.backIcon(context),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          widget.entry == null ? '新日记' : '编辑日记',
-          style: TextStyle(
-            fontFamily: 'NotoSerifSC',
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-            letterSpacing: 1,
-            color: colors.mainText,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _save,
-            child: Text(
-              '保存',
-              style: TextStyle(
-                fontFamily: 'NotoSansSC',
-                fontSize: 14,
-                color: colors.accent,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
         child: Column(
           children: [
-            // Category toggle
-            Row(
-              children: [
-                _buildCategoryChip(context, colors, 'diary', '日记'),
-                const SizedBox(width: 8),
-                _buildCategoryChip(context, colors, 'dream', '梦境'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _titleController,
-              style: TextStyle(
-                fontFamily: 'NotoSerifSC',
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                color: colors.mainText,
-              ),
-              decoration: InputDecoration(
-                hintText: '标题',
-                hintStyle: TextStyle(
-                  fontFamily: 'NotoSerifSC',
-                  fontSize: 17,
-                  color: colors.secondaryText,
-                ),
-                border: InputBorder.none,
-              ),
-            ),
-            const SizedBox(height: 8),
+            _Header(colors: colors),
             Expanded(
-              child: TextField(
-                controller: _contentController,
-                style: TextStyle(
-                  fontFamily: 'NotoSansSC',
-                  fontSize: 14,
-                  color: colors.mainText,
-                  height: 1.6,
-                ),
-                decoration: InputDecoration(
-                  hintText: '写下你的心情...',
-                  hintStyle: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontSize: 14,
-                    color: colors.secondaryText,
-                  ),
-                  border: InputBorder.none,
-                ),
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-              ),
+              child: diary.entries.isEmpty
+                  ? _EmptyState(colors: colors)
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: diary.entries.length,
+                      itemBuilder: (ctx, i) {
+                        final entry = diary.entries[i];
+                        return _EntryCard(colors: colors, entry: entry);
+                      },
+                    ),
             ),
+            _BottomNav(colors: colors, context: context),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildCategoryChip(
-      BuildContext context, AppColors colors, String value, String label) {
-    final selected = _category == value;
-    return GestureDetector(
-      onTap: () => setState(() => _category = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? colors.accent : colors.cardBase,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: selected ? colors.accent : colors.border,
+class _Header extends StatelessWidget {
+  final AppColors colors;
+  const _Header({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.mainText),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'NotoSansSC',
-            fontSize: 12,
-            color: selected ? Colors.white : colors.secondaryText,
+          const Spacer(),
+          Column(
+            children: [
+              Text('信件室', style: TextStyle(
+                fontFamily: 'NotoSerifSC', fontWeight: FontWeight.w700,
+                fontSize: 20, color: colors.mainText,
+              )),
+              Text('Letters · 写下想说的话', style: TextStyle(
+                fontFamily: 'NotoSansSC', fontSize: 11, color: colors.mutedText,
+              )),
+            ],
           ),
-        ),
+          const Spacer(),
+          const SizedBox(width: 20),
+        ],
       ),
     );
   }
+}
 
-  void _save() {
-    if (_titleController.text.trim().isEmpty) return;
-    final entry = DiaryEntry(
-      id: widget.entry?.id ?? _uuid.v4(),
-      title: _titleController.text.trim(),
-      content: _contentController.text.trim(),
-      category: _category,
-      date: widget.entry?.date ?? DateTime.now(),
-      updatedAt: DateTime.now(),
+class _EntryCard extends StatelessWidget {
+  final AppColors colors;
+  final DiaryEntry entry;
+  const _EntryCard({required this.colors, required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(entry.title, style: TextStyle(
+                  fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+                  fontSize: 15, color: colors.mainText,
+                )),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colors.accentLight,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(entry.category == 'dream' ? '梦境' : '日记', style: TextStyle(
+                  fontFamily: 'NotoSansSC', fontSize: 11, color: colors.accent,
+                )),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(entry.content, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 14, color: colors.secondaryText, height: 1.5,
+          )),
+          const SizedBox(height: 8),
+          Text('${entry.date.month}/${entry.date.day}', style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 11, color: colors.mutedText,
+          )),
+        ],
+      ),
     );
-    Navigator.pop(context, entry);
   }
 }
 
-class _DottedLinePainter extends CustomPainter {
-  final Color color;
-  _DottedLinePainter({required this.color});
+class _EmptyState extends StatelessWidget {
+  final AppColors colors;
+  const _EmptyState({required this.colors});
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.0;
-    double x = 0;
-    while (x < size.width) {
-      canvas.drawLine(Offset(x, 0), Offset(x + 6, 0), paint);
-      x += 10; // 6 dash + 4 gap
-    }
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.edit_outlined, size: 48, color: colors.mutedText),
+          const SizedBox(height: 12),
+          Text('还没有日记\n写下今天的心情吧', textAlign: TextAlign.center, style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 14, color: colors.mutedText, height: 1.5,
+          )),
+        ],
+      ),
+    );
   }
+}
+
+Widget _BottomNav({required AppColors colors, required BuildContext context}) {
+  return Container(
+    decoration: BoxDecoration(
+      color: colors.cardSurface,
+      border: Border(top: BorderSide(color: colors.border, width: 0.5)),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavItem(colors: colors, icon: Icons.home, label: '窗台', active: false, onTap: () => Navigator.popUntil(context, (r) => r.isFirst)),
+            _NavItem(colors: colors, icon: Icons.weekend, label: '客厅', active: false, onTap: () => Navigator.pop(context)),
+            _NavItem(colors: colors, icon: Icons.settings, label: '设置', active: false, onTap: () {}),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _NavItem extends StatelessWidget {
+  final AppColors colors;
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _NavItem({required this.colors, required this.icon, required this.label, required this.active, required this.onTap});
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 22, color: active ? colors.accent : colors.mutedText),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(fontFamily: 'NotoSansSC', fontSize: 10, color: active ? colors.accent : colors.mutedText)),
+        ],
+      ),
+    );
+  }
 }

@@ -1,259 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import '../providers/bookshelf_provider.dart';
 import '../widgets/theme_colors.dart';
-import '../widgets/moon_icon.dart';
-import '../widgets/glass_card.dart';
-import '../models/book_item.dart';
 
-class BookshelfPage extends StatefulWidget {
+class BookshelfPage extends StatelessWidget {
   const BookshelfPage({super.key});
 
   @override
-  State<BookshelfPage> createState() => _BookshelfPageState();
-}
-
-class _BookshelfPageState extends State<BookshelfPage> {
-  final _uuid = const Uuid();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BookshelfProvider>().loadBooks();
-    });
-  }
-
-  Future<void> _addBook() async {
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (ctx) => _BookFormDialog(),
-    );
-    if (result != null) {
-      final book = BookItem(
-        id: _uuid.v4(),
-        title: result['title']!,
-        author: result['author'] ?? '',
-        totalPages: int.tryParse(result['totalPages'] ?? '0') ?? 0,
-      );
-      await context.read<BookshelfProvider>().addBook(book);
-    }
-  }
-
-  Future<void> _updateProgress(BookItem book) async {
-    final totalCtrl =
-        TextEditingController(text: book.totalPages.toString());
-    final currentCtrl =
-        TextEditingController(text: book.currentPages.toString());
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('更新进度'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: totalCtrl,
-              decoration: const InputDecoration(labelText: '总页数'),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: currentCtrl,
-              decoration: const InputDecoration(labelText: '已读页数'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final total = int.tryParse(totalCtrl.text) ?? book.totalPages;
-              final current =
-                  int.tryParse(currentCtrl.text) ?? book.currentPages;
-              await context
-                  .read<BookshelfProvider>()
-                  .updateProgress(book.id, total, current);
-              Navigator.pop(ctx);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _deleteBook(BookItem book) async {
-    await context.read<BookshelfProvider>().deleteBook(book.id);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final shelf = context.watch<BookshelfProvider>();
+
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.cardSurface,
-        elevation: 0,
-        leading: IconButton(
-          icon: ThemeColors.backIcon(context),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '书架',
-          style: TextStyle(
-            fontFamily: 'NotoSerifSC',
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-            letterSpacing: 1,
-            color: colors.mainText,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: ThemeColors.plusIcon(context),
-            onPressed: _addBook,
-          ),
-        ],
-      ),
-      body: Consumer<BookshelfProvider>(
-        builder: (context, bookshelf, _) {
-          final books = bookshelf.books;
-          if (books.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ThemeColors.bookIcon(context, size: 48),
-                  const SizedBox(height: 12),
-                  Text(
-                    '书架空空如也',
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontSize: 14,
-                      color: colors.secondaryText,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: _addBook,
-                    child: Text(
-                      '添加一本书',
-                      style: TextStyle(
-                        fontFamily: 'NotoSansSC',
-                        fontSize: 14,
-                        color: colors.accent,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-          return ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              final book = books[index];
-              return _buildBookCard(context, colors, book);
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildBookCard(BuildContext context, AppColors colors, BookItem book) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassCard(
-        onTap: () => _updateProgress(book),
-        child: Row(
+      body: SafeArea(
+        child: Column(
           children: [
-            // Cover placeholder
-            Container(
-              width: 56,
-              height: 80,
-              decoration: BoxDecoration(
-                color: colors.cardBase,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: colors.border),
-              ),
-              child: Center(
-                child: Text(
-                  book.coverEmoji,
-                  style: const TextStyle(fontSize: 28),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
+            _Header(colors: colors),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    book.title,
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: colors.mainText,
+              child: shelf.books.isEmpty
+                  ? _EmptyState(colors: colors)
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: shelf.books.length,
+                      itemBuilder: (ctx, i) {
+                        final book = shelf.books[i];
+                        return _BookCard(colors: colors, book: book);
+                      },
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (book.author.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      book.author,
-                      style: TextStyle(
-                        fontFamily: 'NotoSansSC',
-                        fontSize: 12,
-                        color: colors.secondaryText,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: LinearProgressIndicator(
-                            value: book.progress,
-                            minHeight: 4,
-                            backgroundColor: colors.cardBase,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                colors.accent),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        book.progressPercent,
-                        style: TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 12,
-                          color: colors.secondaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => _deleteBook(book),
-              child: ThemeColors.trashIcon(context, size: 16),
-            ),
+            _BottomNav(colors: colors, context: context),
           ],
         ),
       ),
@@ -261,97 +37,168 @@ class _BookshelfPageState extends State<BookshelfPage> {
   }
 }
 
-class _BookFormDialog extends StatefulWidget {
-  @override
-  State<_BookFormDialog> createState() => _BookFormDialogState();
-}
-
-class _BookFormDialogState extends State<_BookFormDialog> {
-  final _titleCtrl = TextEditingController();
-  final _authorCtrl = TextEditingController();
-  final _pagesCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _authorCtrl.dispose();
-    _pagesCtrl.dispose();
-    super.dispose();
-  }
+class _Header extends StatelessWidget {
+  final AppColors colors;
+  const _Header({required this.colors});
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return AlertDialog(
-      backgroundColor: colors.cardSurface,
-      title: Text(
-        '添加书目',
-        style: TextStyle(
-          fontFamily: 'NotoSerifSC',
-          fontWeight: FontWeight.w700,
-          fontSize: 17,
-          color: colors.mainText,
-        ),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
         children: [
-          TextField(
-            controller: _titleCtrl,
-            decoration: InputDecoration(
-              labelText: '书名',
-              labelStyle: TextStyle(color: colors.secondaryText),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            style: TextStyle(color: colors.mainText),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.mainText),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _authorCtrl,
-            decoration: InputDecoration(
-              labelText: '作者',
-              labelStyle: TextStyle(color: colors.secondaryText),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            style: TextStyle(color: colors.mainText),
+          const Spacer(),
+          Column(
+            children: [
+              Text('书房', style: TextStyle(
+                fontFamily: 'NotoSerifSC', fontWeight: FontWeight.w700,
+                fontSize: 20, color: colors.mainText,
+              )),
+              Text('Books · 一起读书', style: TextStyle(
+                fontFamily: 'NotoSansSC', fontSize: 11, color: colors.mutedText,
+              )),
+            ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _pagesCtrl,
-            decoration: InputDecoration(
-              labelText: '总页数',
-              labelStyle: TextStyle(color: colors.secondaryText),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+          const Spacer(),
+          const SizedBox(width: 20),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookCard extends StatelessWidget {
+  final AppColors colors;
+  final BookItem book;
+  const _BookCard({required this.colors, required this.book});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.border, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          // 封面 emoji
+          Container(
+            width: 48, height: 64,
+            decoration: BoxDecoration(
+              color: colors.accentLight,
+              borderRadius: BorderRadius.circular(8),
             ),
-            keyboardType: TextInputType.number,
-            style: TextStyle(color: colors.mainText),
+            child: Center(child: Text(book.coverEmoji, style: const TextStyle(fontSize: 28))),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(book.title, style: TextStyle(
+                  fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+                  fontSize: 15, color: colors.mainText,
+                )),
+                if (book.author.isNotEmpty)
+                  Text(book.author, style: TextStyle(
+                    fontFamily: 'NotoSansSC', fontSize: 12, color: colors.secondaryText,
+                  )),
+                const SizedBox(height: 8),
+                // 进度条
+                if (book.totalPages > 0) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: book.progress,
+                      minHeight: 6,
+                      backgroundColor: colors.border,
+                      valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('${book.currentPages}/${book.totalPages} 页 · ${book.progressPercent}', style: TextStyle(
+                    fontFamily: 'NotoSansSC', fontSize: 11, color: colors.mutedText,
+                  )),
+                ],
+              ],
+            ),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('取消',
-              style: TextStyle(color: colors.secondaryText)),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final AppColors colors;
+  const _EmptyState({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.book_outlined, size: 48, color: colors.mutedText),
+          const SizedBox(height: 12),
+          Text('书架还是空的\n添加一本想读的书吧', textAlign: TextAlign.center, style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 14, color: colors.mutedText, height: 1.5,
+          )),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _BottomNav({required AppColors colors, required BuildContext context}) {
+  return Container(
+    decoration: BoxDecoration(
+      color: colors.cardSurface,
+      border: Border(top: BorderSide(color: colors.border, width: 0.5)),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavItem(colors: colors, icon: Icons.home, label: '窗台', active: false, onTap: () => Navigator.popUntil(context, (r) => r.isFirst)),
+            _NavItem(colors: colors, icon: Icons.weekend, label: '客厅', active: false, onTap: () => Navigator.pop(context)),
+            _NavItem(colors: colors, icon: Icons.settings, label: '设置', active: false, onTap: () {}),
+          ],
         ),
-        TextButton(
-          onPressed: () {
-            if (_titleCtrl.text.trim().isEmpty) return;
-            Navigator.pop(context, {
-              'title': _titleCtrl.text.trim(),
-              'author': _authorCtrl.text.trim(),
-              'totalPages': _pagesCtrl.text.trim(),
-            });
-          },
-          child: Text('添加', style: TextStyle(color: colors.accent)),
-        ),
-      ],
+      ),
+    ),
+  );
+}
+
+class _NavItem extends StatelessWidget {
+  final AppColors colors;
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _NavItem({required this.colors, required this.icon, required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 22, color: active ? colors.accent : colors.mutedText),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(fontFamily: 'NotoSansSC', fontSize: 10, color: active ? colors.accent : colors.mutedText)),
+        ],
+      ),
     );
   }
 }

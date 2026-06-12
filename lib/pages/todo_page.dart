@@ -1,225 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import '../providers/todo_provider.dart';
 import '../widgets/theme_colors.dart';
-import '../widgets/moon_icon.dart';
-import '../widgets/glass_card.dart';
-import '../models/todo_item.dart';
 
-class TodoPage extends StatefulWidget {
+class TodoPage extends StatelessWidget {
   const TodoPage({super.key});
-
-  @override
-  State<TodoPage> createState() => _TodoPageState();
-}
-
-class _TodoPageState extends State<TodoPage> {
-  final _uuid = const Uuid();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TodoProvider>().loadTodos();
-    });
-  }
-
-  Future<void> _addTodo() async {
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (ctx) => _TodoFormDialog(),
-    );
-    if (result != null) {
-      final todo = TodoItem(
-        id: _uuid.v4(),
-        title: result['title']!,
-        tag: result['tag'] ?? '',
-      );
-      await context.read<TodoProvider>().addTodo(todo);
-    }
-  }
-
-  Future<void> _toggleTodo(TodoItem item) async {
-    await context.read<TodoProvider>().toggleTodo(item.id);
-  }
-
-  Future<void> _deleteTodo(TodoItem item) async {
-    await context.read<TodoProvider>().deleteTodo(item.id);
-  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final todo = context.watch<TodoProvider>();
+
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.cardSurface,
-        elevation: 0,
-        leading: IconButton(
-          icon: ThemeColors.backIcon(context),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '待办',
-          style: TextStyle(
-            fontFamily: 'NotoSerifSC',
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-            letterSpacing: 1,
-            color: colors.mainText,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: ThemeColors.plusIcon(context),
-            onPressed: _addTodo,
-          ),
-        ],
-      ),
-      body: Consumer<TodoProvider>(
-        builder: (context, todoProv, _) {
-          final todos = todoProv.todos;
-          if (todos.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ThemeColors.todoIcon(context, size: 48),
-                  const SizedBox(height: 12),
-                  Text(
-                    '还没有待办事项',
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontSize: 14,
-                      color: colors.secondaryText,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-          final incomplete = todoProv.incompleteTodos;
-          final completed = todoProv.completedTodos;
-          return ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Incomplete section
-              if (incomplete.isNotEmpty) ...[
-                Text(
-                  '进行中',
-                  style: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: colors.mainText,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...incomplete.map((todo) =>
-                    _buildTodoCard(context, colors, todo)),
-                const SizedBox(height: 20),
-              ],
-              // Completed section
-              if (completed.isNotEmpty) ...[
-                Text(
-                  '已完成',
-                  style: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: colors.secondaryText,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...completed
-                    .map((todo) => _buildTodoCard(context, colors, todo)),
-              ],
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTodoCard(
-      BuildContext context, AppColors colors, TodoItem todo) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: SmallCard(
-        child: Row(
+      body: SafeArea(
+        child: Column(
           children: [
-            // Checkbox
-            GestureDetector(
-              onTap: () => _toggleTodo(todo),
-              child: Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: todo.isCompleted ? colors.accent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: todo.isCompleted ? colors.accent : colors.border,
-                    width: 2,
-                  ),
-                ),
-                child: todo.isCompleted
-                    ? Center(
-                        child: Icon(
-                          Icons.check,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 12),
+            _Header(colors: colors, incompleteCount: todo.incompleteCount),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    todo.title,
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontSize: 14,
-                      color: todo.isCompleted
-                          ? colors.secondaryText
-                          : colors.mainText,
-                      decoration: todo.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
+              child: todo.todos.isEmpty
+                  ? _EmptyState(colors: colors)
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      children: [
+                        // 未完成
+                        if (todo.incompleteTodos.isNotEmpty) ...[
+                          Text('待办 · ${todo.incompleteCount}', style: TextStyle(
+                            fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+                            fontSize: 13, color: colors.mutedText,
+                          )),
+                          const SizedBox(height: 8),
+                          ...todo.incompleteTodos.map((t) => _TodoCard(
+                            colors: colors, item: t,
+                            onToggle: () => todo.toggleTodo(t.id),
+                          )),
+                          const SizedBox(height: 16),
+                        ],
+                        // 已完成
+                        if (todo.completedTodos.isNotEmpty) ...[
+                          Text('已完成', style: TextStyle(
+                            fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+                            fontSize: 13, color: colors.mutedText,
+                          )),
+                          const SizedBox(height: 8),
+                          ...todo.completedTodos.map((t) => _TodoCard(
+                            colors: colors, item: t,
+                            onToggle: () => todo.toggleTodo(t.id),
+                          )),
+                        ],
+                      ],
                     ),
-                  ),
-                  if (todo.tag.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: colors.tag.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        todo.tag,
-                        style: TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 10,
-                          letterSpacing: 1,
-                          color: colors.tag,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
             ),
-            GestureDetector(
-              onTap: () => _deleteTodo(todo),
-              child: ThemeColors.trashIcon(context, size: 16),
-            ),
+            _BottomNav(colors: colors, context: context),
           ],
         ),
       ),
@@ -227,81 +59,154 @@ class _TodoPageState extends State<TodoPage> {
   }
 }
 
-class _TodoFormDialog extends StatefulWidget {
-  @override
-  State<_TodoFormDialog> createState() => _TodoFormDialogState();
-}
-
-class _TodoFormDialogState extends State<_TodoFormDialog> {
-  final _titleCtrl = TextEditingController();
-  final _tagCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _tagCtrl.dispose();
-    super.dispose();
-  }
+class _Header extends StatelessWidget {
+  final AppColors colors;
+  final int incompleteCount;
+  const _Header({required this.colors, required this.incompleteCount});
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return AlertDialog(
-      backgroundColor: colors.cardSurface,
-      title: Text(
-        '添加待办',
-        style: TextStyle(
-          fontFamily: 'NotoSerifSC',
-          fontWeight: FontWeight.w700,
-          fontSize: 17,
-          color: colors.mainText,
-        ),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
         children: [
-          TextField(
-            controller: _titleCtrl,
-            decoration: InputDecoration(
-              labelText: '事项',
-              labelStyle: TextStyle(color: colors.secondaryText),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            style: TextStyle(color: colors.mainText),
-            autofocus: true,
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.mainText),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _tagCtrl,
-            decoration: InputDecoration(
-              labelText: '标签（可选）',
-              labelStyle: TextStyle(color: colors.secondaryText),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            style: TextStyle(color: colors.mainText),
+          const Spacer(),
+          Column(
+            children: [
+              Text('工作台', style: TextStyle(
+                fontFamily: 'NotoSerifSC', fontWeight: FontWeight.w700,
+                fontSize: 20, color: colors.mainText,
+              )),
+              Text('Tasks · $incompleteCount 件事待办', style: TextStyle(
+                fontFamily: 'NotoSansSC', fontSize: 11, color: colors.mutedText,
+              )),
+            ],
           ),
+          const Spacer(),
+          const SizedBox(width: 20),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('取消', style: TextStyle(color: colors.secondaryText)),
+    );
+  }
+}
+
+class _TodoCard extends StatelessWidget {
+  final AppColors colors;
+  final TodoItem item;
+  final VoidCallback onToggle;
+  const _TodoCard({required this.colors, required this.item, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colors.cardSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colors.border, width: 0.5),
         ),
-        TextButton(
-          onPressed: () {
-            if (_titleCtrl.text.trim().isEmpty) return;
-            Navigator.pop(context, {
-              'title': _titleCtrl.text.trim(),
-              'tag': _tagCtrl.text.trim(),
-            });
-          },
-          child: Text('添加', style: TextStyle(color: colors.accent)),
+        child: Row(
+          children: [
+            Icon(
+              item.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 22,
+              color: item.isCompleted ? colors.accent : colors.mutedText,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(item.title, style: TextStyle(
+                fontFamily: 'NotoSansSC', fontSize: 14, color: colors.mainText,
+                decoration: item.isCompleted ? TextDecoration.lineThrough : null,
+              )),
+            ),
+            if (item.tag.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colors.tag.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(item.tag, style: TextStyle(
+                  fontFamily: 'NotoSansSC', fontSize: 11, color: colors.tag,
+                )),
+              ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final AppColors colors;
+  const _EmptyState({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle_outline, size: 48, color: colors.mutedText),
+          const SizedBox(height: 12),
+          Text('没有待办事项\n清清爽爽的一天', textAlign: TextAlign.center, style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 14, color: colors.mutedText, height: 1.5,
+          )),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _BottomNav({required AppColors colors, required BuildContext context}) {
+  return Container(
+    decoration: BoxDecoration(
+      color: colors.cardSurface,
+      border: Border(top: BorderSide(color: colors.border, width: 0.5)),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavItem(colors: colors, icon: Icons.home, label: '窗台', active: false, onTap: () => Navigator.popUntil(context, (r) => r.isFirst)),
+            _NavItem(colors: colors, icon: Icons.weekend, label: '客厅', active: false, onTap: () => Navigator.pop(context)),
+            _NavItem(colors: colors, icon: Icons.settings, label: '设置', active: false, onTap: () {}),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _NavItem extends StatelessWidget {
+  final AppColors colors;
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _NavItem({required this.colors, required this.icon, required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 22, color: active ? colors.accent : colors.mutedText),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(fontFamily: 'NotoSansSC', fontSize: 10, color: active ? colors.accent : colors.mutedText)),
+        ],
+      ),
     );
   }
 }
