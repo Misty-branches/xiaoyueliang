@@ -529,7 +529,7 @@ class _WindowsillPageState extends State<WindowsillPage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildTabItem(context, colors, Icons.home, '窗台', true),
-              _buildTabItem(context, colors, Icons.living, '客厅', false),
+              _buildTabItem(context, colors, Icons.weekend, '客厅', false),
               _buildTabItem(context, colors, Icons.settings, '设置', false),
             ],
           ),
