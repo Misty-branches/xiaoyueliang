@@ -50,6 +50,22 @@ class _ChatPageState extends State<ChatPage> {
     if (text.isEmpty) return;
 
     final chat = context.read<ChatProvider>();
+
+    // 检查 API 是否已配置
+    if (chat.apiKey.isEmpty || chat.apiBaseUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('请先在「设置」-「服务商配置」中填写 API Key'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Theme.of(context).extension<AppColors>()!.accentWarm,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
     _inputController.clear();
 
     // 如果没有活跃对话，自动创建
@@ -154,6 +170,7 @@ class _ChatPageState extends State<ChatPage> {
                 controller: _inputController,
                 onSend: _sendMessage,
                 isLoading: chat.isLoading,
+                apiConfigured: chat.apiKey.isNotEmpty && chat.apiBaseUrl.isNotEmpty,
               ),
             ],
           ),
@@ -396,12 +413,14 @@ class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
   final bool isLoading;
+  final bool apiConfigured;
 
   const _InputBar({
     required this.colors,
     required this.controller,
     required this.onSend,
     required this.isLoading,
+    required this.apiConfigured,
   });
 
   @override
@@ -421,13 +440,15 @@ class _InputBar extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
-              enabled: !isLoading,
+              enabled: !isLoading && apiConfigured,
               maxLines: 4,
               minLines: 1,
               textInputAction: TextInputAction.send,
-              onSubmitted: isLoading ? null : (_) => onSend(),
+              onSubmitted: (!isLoading && apiConfigured) ? (_) => onSend() : null,
               decoration: InputDecoration(
-                hintText: isLoading ? '等待回复中…' : '输入消息…',
+                hintText: !apiConfigured
+                    ? '请先配置 API Key'
+                    : (isLoading ? '等待回复中…' : '输入消息…'),
                 hintStyle: TextStyle(
                   fontFamily: 'NotoSansSC', fontSize: 14, color: colors.mutedText,
                 ),
@@ -446,11 +467,11 @@ class _InputBar extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           GestureDetector(
-            onTap: isLoading ? null : onSend,
+            onTap: (!isLoading && apiConfigured) ? onSend : null,
             child: Container(
               width: 38, height: 38,
               decoration: BoxDecoration(
-                color: isLoading ? colors.mutedText.withOpacity(0.3) : colors.accent,
+                color: (!isLoading && apiConfigured) ? colors.accent : colors.mutedText.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(19),
               ),
               child: Icon(

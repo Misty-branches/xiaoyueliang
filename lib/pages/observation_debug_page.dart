@@ -33,7 +33,26 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
   @override
   void initState() {
     super.initState();
-    _loadObservation();
+    _loadFromProvider();
+  }
+
+  /// 从 ObservationProvider 直接读取最新观察快照
+  void _loadFromProvider() {
+    // 先尝试从 Provider 读取
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final provider = context.read<ObservationProvider>();
+      final snapshot = provider.latestObservation;
+      if (snapshot != null) {
+        setState(() {
+          _snapshot = snapshot;
+          _loading = false;
+        });
+      } else {
+        // Provider 无数据时，尝试从缓存读取
+        _loadObservation();
+      }
+    });
   }
 
   Future<void> _loadObservation() async {
@@ -218,7 +237,7 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).maybePop(),
             icon: ThemeColors.backIcon(context),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
