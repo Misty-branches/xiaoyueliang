@@ -107,6 +107,114 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  /// 弹出模型切换面板
+  void _showModelSwitcher(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final config = context.read<ProviderConfigProvider>();
+    final chat = context.read<ChatProvider>();
+    final provider = config.activeProvider;
+    final models = provider?.models ?? [];
+    final current = chat.model;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(
+                      color: colors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('切换模型', style: TextStyle(
+                  fontFamily: 'NotoSerifSC', fontWeight: FontWeight.w700,
+                  fontSize: 18, color: colors.mainText,
+                )),
+                const SizedBox(height: 6),
+                Text('当前服务商：${provider?.name ?? '-'}', style: TextStyle(
+                  fontFamily: 'NotoSansSC', fontSize: 12, color: colors.secondaryText,
+                )),
+                const SizedBox(height: 16),
+                if (models.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text('暂无模型，请先在设置中添加', style: TextStyle(
+                        fontFamily: 'NotoSansSC', fontSize: 14, color: colors.mutedText,
+                      )),
+                    ),
+                  )
+                else
+                  ...models.map((model) => GestureDetector(
+                    onTap: () {
+                      chat.setModel(model);
+                      if (provider != null) {
+                        config.setActiveModel(provider.id, model);
+                      }
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: model == current
+                            ? colors.accent.withOpacity(0.08)
+                            : colors.cardBase,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: model == current ? colors.accent : colors.border,
+                          width: model == current ? 1.5 : 0.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.smart_toy_outlined, size: 20,
+                              color: model == current ? colors.accent : colors.secondaryText),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(model, style: TextStyle(
+                              fontFamily: 'NotoSansSC', fontSize: 14,
+                              color: colors.mainText,
+                              fontWeight: model == current ? FontWeight.w600 : FontWeight.normal,
+                            )),
+                          ),
+                          if (model == current)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: colors.accent,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text('当前', style: TextStyle(
+                                fontFamily: 'NotoSansSC', fontSize: 10, color: Colors.white,
+                              )),
+                            ),
+                        ],
+                      ),
+                    ),
+                  )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// 触发观察层：收集所有 Provider 数据并生成观察快照
   void _triggerObservation(BuildContext context) {
     ObservationService.triggerObservation(
@@ -142,8 +250,10 @@ class _ChatPageState extends State<ChatPage> {
               _ChatHeader(
                 colors: colors,
                 title: chat.activeConversation!.title,
+                modelName: chat.model,
                 onBack: () => setState(() => _showConversationList = true),
                 onNew: _newConversation,
+                onSwitchModel: () => _showModelSwitcher(context),
               ),
               // 消息气泡列表
               Expanded(
@@ -231,14 +341,18 @@ class _ChatPageState extends State<ChatPage> {
 class _ChatHeader extends StatelessWidget {
   final AppColors colors;
   final String title;
+  final String modelName;
   final VoidCallback onBack;
   final VoidCallback onNew;
+  final VoidCallback? onSwitchModel;
 
   const _ChatHeader({
     required this.colors,
     required this.title,
+    required this.modelName,
     required this.onBack,
     required this.onNew,
+    this.onSwitchModel,
   });
 
   @override
@@ -258,6 +372,31 @@ class _ChatHeader extends StatelessWidget {
               fontSize: 16, color: colors.mainText,
             )),
           ),
+          // 模型切换按钮
+          if (modelName.isNotEmpty)
+            GestureDetector(
+              onTap: onSwitchModel,
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colors.accentLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.smart_toy_outlined, size: 13, color: colors.accent),
+                    const SizedBox(width: 4),
+                    Text(modelName, style: TextStyle(
+                      fontFamily: 'NotoSansSC', fontSize: 11, color: colors.accent,
+                    )),
+                    const SizedBox(width: 2),
+                    Icon(Icons.expand_more, size: 14, color: colors.accent),
+                  ],
+                ),
+              ),
+            ),
           GestureDetector(
             onTap: onNew,
             child: Container(
