@@ -3,6 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/message_board_provider.dart';
 import '../providers/diary_provider.dart';
+import '../providers/chat_provider.dart';
+import '../providers/project_provider.dart';
+import '../providers/bookshelf_provider.dart';
+import '../providers/todo_provider.dart';
+import '../providers/observation_provider.dart';
+import '../services/observation_service.dart';
 import '../models/message_post.dart';
 import '../models/diary_entry.dart';
 import '../widgets/theme_colors.dart';
@@ -256,6 +262,9 @@ class _LetterRoomPageState extends State<LetterRoomPage>
     );
     context.read<MessageBoardProvider>().addPost(post);
     _messageController.clear();
+
+    // 留言发送后触发观察层
+    _triggerObservation(context);
   }
 
   // ═══════════════════════════════════════════
@@ -443,6 +452,21 @@ class _LetterRoomPageState extends State<LetterRoomPage>
       updatedAt: DateTime.now(),
     );
     context.read<DiaryProvider>().addOrUpdateEntry(entry);
+
+    // 日记保存后触发观察层
+    _triggerObservation(context);
+  }
+
+  /// 触发观察层：收集所有 Provider 数据并生成观察快照
+  void _triggerObservation(BuildContext context) {
+    ObservationService.triggerObservation(
+      chatProvider: context.read<ChatProvider>(),
+      diaryProvider: context.read<DiaryProvider>(),
+      projectProvider: context.read<ProjectProvider>(),
+      bookshelfProvider: context.read<BookshelfProvider>(),
+      todoProvider: context.read<TodoProvider>(),
+      observationProvider: context.read<ObservationProvider>(),
+    );
   }
 
   // ═══════════════════════════════════════════
