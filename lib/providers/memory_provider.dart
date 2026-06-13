@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/memory_item.dart';
 import '../models/observation.dart';
-import 'memory_promoter.dart';
+import '../services/memory_promoter.dart';
 
 /// Memory 持久化 Provider
 ///
