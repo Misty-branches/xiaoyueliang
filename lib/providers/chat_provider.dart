@@ -16,9 +16,22 @@ class ChatProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _apiKey = '';
   String _apiBaseUrl = '';
+  String _apiPath = '/v1/chat/completions';
   String _systemPrompt =
       '你是一个名叫「小月亮」的温暖陪伴型AI助手。你温柔、体贴、善解人意，像月光一样静静地陪伴着用户。你说话简洁而温暖，用中文回答。';
   String _model = '';
+  bool _hasProviderConfig = false;
+
+  /// 从 ProviderConfigProvider 的 ApiProvider 同步配置
+  void configureFrom(dynamic apiProvider) {
+    if (apiProvider == null) return;
+    _apiKey = apiProvider.apiKey ?? '';
+    _apiBaseUrl = apiProvider.apiHost ?? '';
+    _apiPath = apiProvider.apiPath ?? '/v1/chat/completions';
+    _model = apiProvider.activeModel ?? '';
+    _hasProviderConfig = _apiKey.isNotEmpty && _apiBaseUrl.isNotEmpty;
+    notifyListeners();
+  }
 
   // ─── Getters ───
   List<Conversation> get conversations => _conversations;
@@ -324,7 +337,7 @@ class ChatProvider extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse(_apiBaseUrl),
+        Uri.parse('$_apiBaseUrl$_apiPath'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_apiKey',

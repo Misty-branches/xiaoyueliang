@@ -1,10 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
+import '../providers/provider_config_provider.dart';
 import '../widgets/theme_colors.dart';
 
-class ChatPage extends StatelessWidget {
+class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
+
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 等一帧保证 Provider 都已就绪
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncProviderConfig();
+    });
+  }
+
+  void _syncProviderConfig() {
+    final config = context.read<ProviderConfigProvider>();
+    final chat = context.read<ChatProvider>();
+    chat.configureFrom(config.activeProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
