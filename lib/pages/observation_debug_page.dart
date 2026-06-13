@@ -1,20 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/observation.dart';
+import '../providers/observation_provider.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
-import 'package:provider/provider.dart';
-import '../models/chat_message.dart';
-import '../providers/observation_provider.dart';
-import '../test_helpers/observation_test_cases.dart';
 
 /// 观察层调试面板
 ///
-/// 只读页面，从 SharedPreferences 读取 'moon_latest_observation'
-/// 并以卡片网格形式展示观察层最新快照的全部数据。
+/// 只读展示 ObservationProvider 最新观察快照的全部数据。
+/// 无数据时提示用户去聊天室发消息或写日记触发观察。
 class ObservationDebugPage extends StatefulWidget {
   const ObservationDebugPage({super.key});
 
@@ -23,181 +21,48 @@ class ObservationDebugPage extends StatefulWidget {
 }
 
 class _ObservationDebugPageState extends State<ObservationDebugPage> {
-  static const String _storageKey = 'moon_latest_observation';
-
   ObservationSnapshot? _snapshot;
   Map<String, dynamic>? _rawJson;
   bool _loading = true;
-  int _selectedTestCaseIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadFromProvider();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadFromProvider());
   }
 
-  /// 从 ObservationProvider 直接读取最新观察快照
   void _loadFromProvider() {
-    // 先尝试从 Provider 读取
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final provider = context.read<ObservationProvider>();
-      final snapshot = provider.latestObservation;
-      if (snapshot != null) {
-        setState(() {
-          _snapshot = snapshot;
-          _loading = false;
-        });
-      } else {
-        // Provider 无数据时，尝试从缓存读取
-        _loadObservation();
-      }
-    });
+    if (!mounted) return;
+    final provider = context.read<ObservationProvider>();
+    final snapshot = provider.latestObservation;
+    if (snapshot != null) {
+      setState(() {
+        _snapshot = snapshot;
+        _rawJson = snapshot.toJson();
+        _loading = false;
+      });
+    } else {
+      // Provider 无数据 → 尝试读缓存（可能之前产生过）
+      _loadFromCache();
+    }
   }
 
-  Future<void> _loadObservation() async {
+  Future<void> _loadFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
-      if (raw != null) {
+      final raw = prefs.getString('moon_latest_observation');
+      if (raw != null && mounted) {
         final json = jsonDecode(raw) as Map<String, dynamic>;
         setState(() {
           _snapshot = ObservationSnapshot.fromJson(json);
           _rawJson = json;
           _loading = false;
         });
-      } else {
+      } else if (mounted) {
         setState(() => _loading = false);
       }
-    } catch (e) {
-      debugPrint('[ObservationDebugPage] 加载失败: $e');
-      setState(() => _loading = false);
-    }
-  }
-
-  // ═══════════════════════════════════════════
-  // 测试场景选择与加载
-  // ═══════════════════════════════════════════
-  Widget _buildTestSceneSelector(BuildContext context, AppColors colors) {
-    final testCase = kTestCases[_selectedTestCaseIndex];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.science_outlined, size: 18, color: colors.accent),
-                const SizedBox(width: 8),
-                Text(
-                  '测试场景',
-                  style: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: colors.mainText,
-                  ),
-                ),
-                const Spacer(),
-                DropdownButton<int>(
-                  value: _selectedTestCaseIndex,
-                  underline: const SizedBox(),
-                  dropdownColor: colors.cardBase,
-                  items: List.generate(kTestCases.length, (i) {
-                    return DropdownMenuItem<int>(
-                      value: i,
-                      child: Text(
-                        kTestCases[i].name,
-                        style: TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 13,
-                          color: colors.mainText,
-                        ),
-                      ),
-                    );
-                  }),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedTestCaseIndex = value);
-                    }
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              testCase.scenario,
-              style: TextStyle(
-                fontFamily: 'NotoSansSC',
-                fontSize: 12,
-                color: colors.secondaryText,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _loadTestCaseObservation,
-                icon: const Icon(Icons.play_arrow, size: 18),
-                label: const Text('加载并运行观察'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  textStyle: const TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _loadTestCaseObservation() async {
-    try {
-      final testCase = kTestCases[_selectedTestCaseIndex];
-      final now = DateTime.now();
-      final messages = testCase.chatMessages.asMap().entries.map((e) {
-        return ChatMessage(
-          id: 'test_${e.key}',
-          role: 'user',
-          content: e.value,
-          timestamp: now.subtract(Duration(hours: e.key)),
-        );
-      }).toList();
-
-      final provider = context.read<ObservationProvider>();
-      await provider.generateObservation(
-        recentMessages: messages,
-        recentDiaries: [],
-        projects: [],
-        books: [],
-        messageCounts: messages.length,
-        diaryCounts: 0,
-        todoCounts: 0,
-      );
-
-      await _loadObservation();
-    } catch (e) {
-      debugPrint('[ObservationDebugPage] 加载测试场景失败: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('加载失败: $e'),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -212,8 +77,6 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
           children: [
             _buildHeader(context, colors),
             const SizedBox(height: 16),
-            _buildTestSceneSelector(context, colors),
-            const SizedBox(height: 12),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -228,9 +91,6 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 顶部标题栏
-  // ═══════════════════════════════════════════
   Widget _buildHeader(BuildContext context, AppColors colors) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -245,23 +105,13 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
           const Spacer(),
           Column(
             children: [
-              Text(
-                '观察层调试',
-                style: TextStyle(
-                  fontFamily: 'NotoSerifSC',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                  color: colors.mainText,
-                ),
-              ),
-              Text(
-                'OBSERVATION DEBUG',
-                style: TextStyle(
-                  fontFamily: 'NotoSansSC',
-                  fontSize: 11,
-                  color: colors.mutedText,
-                ),
-              ),
+              Text('观察层调试', style: TextStyle(
+                fontFamily: 'NotoSerifSC', fontWeight: FontWeight.w700,
+                fontSize: 20, color: colors.mainText,
+              )),
+              Text('OBSERVATION DEBUG', style: TextStyle(
+                fontFamily: 'NotoSansSC', fontSize: 11, color: colors.mutedText,
+              )),
             ],
           ),
           const Spacer(),
@@ -271,32 +121,25 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 空状态
-  // ═══════════════════════════════════════════
   Widget _buildEmptyState(AppColors colors) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.visibility_off_outlined,
-              size: 48, color: colors.mutedText),
+          Icon(Icons.visibility_off_outlined, size: 48, color: colors.mutedText),
           const SizedBox(height: 16),
-          Text(
-            '暂无观察数据',
-            style: TextStyle(
-              fontFamily: 'NotoSansSC',
-              fontSize: 16,
-              color: colors.secondaryText,
-            ),
-          ),
+          Text('暂无观察数据', style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 16, color: colors.secondaryText,
+          )),
           const SizedBox(height: 8),
-          Text(
-            '等待 ObservationProvider 生成快照',
-            style: TextStyle(
-              fontFamily: 'NotoSansSC',
-              fontSize: 13,
-              color: colors.mutedText,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              '去聊天室发条消息或去信件室写日记\n系统会自动观察并生成数据',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'NotoSansSC', fontSize: 13, color: colors.mutedText, height: 1.5,
+              ),
             ),
           ),
         ],
@@ -304,9 +147,6 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 内容区
-  // ═══════════════════════════════════════════
   Widget _buildContent(BuildContext context, AppColors colors) {
     final snapshot = _snapshot!;
     return SingleChildScrollView(
@@ -315,22 +155,16 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 基本信息
           _buildInfoCard(context, colors, snapshot),
           const SizedBox(height: 12),
-          // 兴趣话题
           _buildInterestsCard(context, colors, snapshot),
           const SizedBox(height: 12),
-          // 情绪状态
           _buildMoodCard(context, colors, snapshot),
           const SizedBox(height: 12),
-          // 活跃项目
           _buildProjectsCard(context, colors, snapshot),
           const SizedBox(height: 12),
-          // 阅读进度
           _buildReadingCard(context, colors, snapshot),
           const SizedBox(height: 12),
-          // 行为模式
           _buildBehaviorCard(context, colors, snapshot),
           const SizedBox(height: 24),
         ],
@@ -339,13 +173,9 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
   }
 
   // ═══════════════════════════════════════════
-  // 卡片：基本信息
+  // 卡片
   // ═══════════════════════════════════════════
-  Widget _buildInfoCard(
-    BuildContext context,
-    AppColors colors,
-    ObservationSnapshot snapshot,
-  ) {
+  Widget _buildInfoCard(BuildContext context, AppColors colors, ObservationSnapshot snapshot) {
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,27 +184,15 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
           const Divider(height: 24),
           _buildInfoRow(colors, '快照 ID', snapshot.id),
           const SizedBox(height: 8),
-          _buildInfoRow(
-              colors, '生成时间', _formatDateTime(snapshot.date)),
+          _buildInfoRow(colors, '生成时间', _formatDateTime(snapshot.date)),
           const SizedBox(height: 8),
-          _buildInfoRow(
-            colors,
-            '数据来源',
-            '由 ObservationProvider 从聊天消息和日记中提炼',
-          ),
+          _buildInfoRow(colors, '可信度', '${(snapshot.confidence * 100).toInt()}%'),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 卡片：兴趣话题
-  // ═══════════════════════════════════════════
-  Widget _buildInterestsCard(
-    BuildContext context,
-    AppColors colors,
-    ObservationSnapshot snapshot,
-  ) {
+  Widget _buildInterestsCard(BuildContext context, AppColors colors, ObservationSnapshot snapshot) {
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,73 +203,49 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
             _buildEmptyRow(colors, '暂无兴趣话题')
           else
             ...snapshot.interests.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.topic,
-                              style: TextStyle(
-                                fontFamily: 'NotoSansSC',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                                color: colors.mainText,
-                              ),
-                            ),
-                          ),
-                          _buildSourceTypeBadge(colors, item.sourceType),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${(item.score * 100).toInt()}%',
-                            style: TextStyle(
-                              fontFamily: 'NotoSansSC',
-                              fontSize: 12,
-                              color: colors.secondaryText,
-                            ),
-                          ),
-                        ],
+                      Expanded(
+                        child: Text(item.topic, style: TextStyle(
+                          fontFamily: 'NotoSansSC', fontWeight: FontWeight.w500,
+                          fontSize: 13, color: colors.mainText,
+                        )),
                       ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: item.score,
-                          backgroundColor: colors.accentLight,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(colors.accent),
-                          minHeight: 6,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '最近提及: ${_formatDateTime(item.lastMention)}',
-                        style: TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 10,
-                          color: colors.mutedText,
-                        ),
-                      ),
+                      _buildSourceTypeBadge(colors, item.sourceType),
+                      const SizedBox(width: 8),
+                      Text('${(item.score * 100).toInt()}%', style: TextStyle(
+                        fontFamily: 'NotoSansSC', fontSize: 12, color: colors.secondaryText,
+                      )),
                     ],
                   ),
-                )),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: item.score,
+                      backgroundColor: colors.accentLight,
+                      valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                      minHeight: 6,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('最近提及: ${_formatDateTime(item.lastMention)}', style: TextStyle(
+                    fontFamily: 'NotoSansSC', fontSize: 10, color: colors.mutedText,
+                  )),
+                ],
+              ),
+            )),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 卡片：情绪状态
-  // ═══════════════════════════════════════════
-  Widget _buildMoodCard(
-    BuildContext context,
-    AppColors colors,
-    ObservationSnapshot snapshot,
-  ) {
+  Widget _buildMoodCard(BuildContext context, AppColors colors, ObservationSnapshot snapshot) {
     final moodColors = _getMoodColors(snapshot.mood.mood);
-
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,8 +255,7 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: moodColors.$1.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -471,21 +264,12 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      _getMoodIcon(snapshot.mood.mood),
-                      size: 16,
-                      color: moodColors.$1,
-                    ),
+                    Icon(_getMoodIcon(snapshot.mood.mood), size: 16, color: moodColors.$1),
                     const SizedBox(width: 6),
-                    Text(
-                      _getMoodLabel(snapshot.mood.mood),
-                      style: TextStyle(
-                        fontFamily: 'NotoSansSC',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: moodColors.$1,
-                      ),
-                    ),
+                    Text(_getMoodLabel(snapshot.mood.mood), style: TextStyle(
+                      fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+                      fontSize: 14, color: moodColors.$1,
+                    )),
                   ],
                 ),
               ),
@@ -495,24 +279,14 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '置信度',
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontSize: 10,
-                      color: colors.mutedText,
-                    ),
-                  ),
+                  Text('置信度', style: TextStyle(
+                    fontFamily: 'NotoSansSC', fontSize: 10, color: colors.mutedText,
+                  )),
                   const SizedBox(height: 2),
-                  Text(
-                    '${(snapshot.mood.confidence * 100).toInt()}%',
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: moodColors.$1,
-                    ),
-                  ),
+                  Text('${(snapshot.mood.confidence * 100).toInt()}%', style: TextStyle(
+                    fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+                    fontSize: 16, color: moodColors.$1,
+                  )),
                 ],
               ),
             ],
@@ -522,14 +296,7 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 卡片：活跃项目
-  // ═══════════════════════════════════════════
-  Widget _buildProjectsCard(
-    BuildContext context,
-    AppColors colors,
-    ObservationSnapshot snapshot,
-  ) {
+  Widget _buildProjectsCard(BuildContext context, AppColors colors, ObservationSnapshot snapshot) {
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,69 +307,45 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
             _buildEmptyRow(colors, '暂无活跃项目')
           else
             ...snapshot.activeProjects.map((project) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(project.status, colors),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          project.name,
-                          style: TextStyle(
-                            fontFamily: 'NotoSansSC',
-                            fontSize: 13,
-                            color: colors.mainText,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: colors.accentLight,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _getStatusLabel(project.status),
-                          style: TextStyle(
-                            fontFamily: 'NotoSansSC',
-                            fontSize: 10,
-                            color: colors.accent,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _formatDateTime(project.lastUpdate),
-                        style: TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 10,
-                          color: colors.mutedText,
-                        ),
-                      ),
-                    ],
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(project.status, colors),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                )),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(project.name, style: TextStyle(
+                      fontFamily: 'NotoSansSC', fontSize: 13, color: colors.mainText,
+                    )),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.accentLight,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(_getStatusLabel(project.status), style: TextStyle(
+                      fontFamily: 'NotoSansSC', fontSize: 10, color: colors.accent,
+                    )),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(_formatDateTime(project.lastUpdate), style: TextStyle(
+                    fontFamily: 'NotoSansSC', fontSize: 10, color: colors.mutedText,
+                  )),
+                ],
+              ),
+            )),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 卡片：阅读进度
-  // ═══════════════════════════════════════════
-  Widget _buildReadingCard(
-    BuildContext context,
-    AppColors colors,
-    ObservationSnapshot snapshot,
-  ) {
+  Widget _buildReadingCard(BuildContext context, AppColors colors, ObservationSnapshot snapshot) {
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -621,15 +364,10 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            r.book,
-                            style: TextStyle(
-                              fontFamily: 'NotoSansSC',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: colors.mainText,
-                            ),
-                          ),
+                          Text(r.book, style: TextStyle(
+                            fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+                            fontSize: 14, color: colors.mainText,
+                          )),
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -639,22 +377,16 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
                                   child: LinearProgressIndicator(
                                     value: r.progress / 100.0,
                                     backgroundColor: colors.accentLight,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        colors.accentWarm),
+                                    valueColor: AlwaysStoppedAnimation<Color>(colors.accentWarm),
                                     minHeight: 6,
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                '${r.progress}%',
-                                style: TextStyle(
-                                  fontFamily: 'NotoSansSC',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                  color: colors.accentWarm,
-                                ),
-                              ),
+                              Text('${r.progress}%', style: TextStyle(
+                                fontFamily: 'NotoSansSC', fontWeight: FontWeight.w500,
+                                fontSize: 12, color: colors.accentWarm,
+                              )),
                             ],
                           ),
                         ],
@@ -663,14 +395,9 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  '讨论次数: ${r.discussions}',
-                  style: TextStyle(
-                    fontFamily: 'NotoSansSC',
-                    fontSize: 12,
-                    color: colors.secondaryText,
-                  ),
-                ),
+                Text('讨论次数: ${r.discussions}', style: TextStyle(
+                  fontFamily: 'NotoSansSC', fontSize: 12, color: colors.secondaryText,
+                )),
               ];
             }(),
         ],
@@ -678,14 +405,7 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 卡片：行为模式
-  // ═══════════════════════════════════════════
-  Widget _buildBehaviorCard(
-    BuildContext context,
-    AppColors colors,
-    ObservationSnapshot snapshot,
-  ) {
+  Widget _buildBehaviorCard(BuildContext context, AppColors colors, ObservationSnapshot snapshot) {
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,41 +413,40 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
           _buildCardTitle(colors, Icons.schedule_outlined, '行为模式'),
           const Divider(height: 24),
           _buildInfoRow(colors, '活跃时段', snapshot.behavior.activeTime.isNotEmpty
-              ? snapshot.behavior.activeTime
-              : '未记录'),
+              ? snapshot.behavior.activeTime : '未记录'),
           const SizedBox(height: 8),
           _buildInfoRow(colors, '最爱模块', snapshot.behavior.favoriteModule.isNotEmpty
-              ? snapshot.behavior.favoriteModule
-              : '未记录'),
+              ? snapshot.behavior.favoriteModule : '未记录'),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 底部按钮：查看原始 JSON
-  // ═══════════════════════════════════════════
   Widget _buildBottomButton(BuildContext context, AppColors colors) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
         child: SizedBox(
           width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _showJsonBottomSheet(context, colors),
-            icon: const Icon(Icons.code, size: 18),
-            label: const Text('查看原始 JSON'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.accent,
-              foregroundColor: Colors.white,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _loading = true;
+                _snapshot = null;
+                _rawJson = null;
+              });
+              _loadFromProvider();
+            },
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('刷新', style: TextStyle(
+              fontFamily: 'NotoSansSC', fontSize: 14, fontWeight: FontWeight.w600,
+            )),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: colors.accent,
+              side: BorderSide(color: colors.accent),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontFamily: 'NotoSansSC',
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -736,123 +455,18 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
     );
   }
 
-  void _showJsonBottomSheet(BuildContext context, AppColors colors) {
-    final jsonStr = _rawJson != null
-        ? const JsonEncoder.withIndent('  ').convert(_rawJson)
-        : '{}';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: colors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: colors.border,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Text(
-                        '原始 JSON',
-                        style: TextStyle(
-                          fontFamily: 'NotoSerifSC',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                          color: colors.mainText,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () {
-                          _copyToClipboard(context, jsonStr);
-                        },
-                        icon: Icon(Icons.copy, size: 20, color: colors.accent),
-                        tooltip: '复制',
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colors.cardBase.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: SingleChildScrollView(
-                        controller: scrollController,
-                        child: SelectableText(
-                          jsonStr,
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 11,
-                            color: colors.mainText,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _copyToClipboard(BuildContext context, String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('已复制到剪贴板'),
-        duration: const Duration(seconds: 1),
-        backgroundColor: Theme.of(context).extension<AppColors>()!.accent,
-      ),
-    );
-  }
-
   // ═══════════════════════════════════════════
   // 辅助组件
   // ═══════════════════════════════════════════
-
   Widget _buildCardTitle(AppColors colors, IconData icon, String title) {
     return Row(
       children: [
         Icon(icon, size: 18, color: colors.accent),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontFamily: 'NotoSansSC',
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            color: colors.mainText,
-          ),
-        ),
+        Text(title, style: TextStyle(
+          fontFamily: 'NotoSansSC', fontWeight: FontWeight.w600,
+          fontSize: 14, color: colors.mainText,
+        )),
       ],
     );
   }
@@ -863,24 +477,14 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
       children: [
         SizedBox(
           width: 72,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'NotoSansSC',
-              fontSize: 12,
-              color: colors.secondaryText,
-            ),
-          ),
+          child: Text(label, style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 12, color: colors.secondaryText,
+          )),
         ),
         Expanded(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'NotoSansSC',
-              fontSize: 12,
-              color: colors.mainText,
-            ),
-          ),
+          child: Text(value, style: TextStyle(
+            fontFamily: 'NotoSansSC', fontSize: 12, color: colors.mainText,
+          )),
         ),
       ],
     );
@@ -889,15 +493,10 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
   Widget _buildEmptyRow(AppColors colors, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'NotoSansSC',
-          fontSize: 13,
-          color: colors.mutedText,
-          fontStyle: FontStyle.italic,
-        ),
-      ),
+      child: Text(text, style: TextStyle(
+        fontFamily: 'NotoSansSC', fontSize: 13, color: colors.mutedText,
+        fontStyle: FontStyle.italic,
+      )),
     );
   }
 
@@ -924,22 +523,16 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: badgeColor.withOpacity(0.3)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'NotoSansSC',
-          fontSize: 9,
-          color: badgeColor,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+      child: Text(label, style: TextStyle(
+        fontFamily: 'NotoSansSC', fontSize: 9, color: badgeColor,
+        fontWeight: FontWeight.w500,
+      )),
     );
   }
 
   // ═══════════════════════════════════════════
   // 工具方法
   // ═══════════════════════════════════════════
-
   String _formatDateTime(DateTime dt) {
     return '${dt.year}-${_pad(dt.month)}-${_pad(dt.day)} '
         '${_pad(dt.hour)}:${_pad(dt.minute)}:${_pad(dt.second)}';
@@ -949,65 +542,40 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
 
   Color _getStatusColor(String status, AppColors colors) {
     switch (status) {
-      case 'active':
-        return colors.accent;
-      case 'paused':
-        return Colors.orange;
-      case 'completed':
-        return Colors.green;
-      default:
-        return colors.mutedText;
+      case 'active': return colors.accent;
+      case 'paused': return Colors.orange;
+      case 'completed': return Colors.green;
+      default: return colors.mutedText;
     }
   }
 
   String _getStatusLabel(String status) {
     switch (status) {
-      case 'active':
-        return '进行中';
-      case 'paused':
-        return '已暂停';
-      case 'completed':
-        return '已完成';
-      default:
-        return status;
+      case 'active': return '进行中';
+      case 'paused': return '已暂停';
+      case 'completed': return '已完成';
+      default: return status;
     }
   }
 
   (Color, IconData) _getMoodColors(String mood) {
     switch (mood) {
-      case 'happy':
-        return (Colors.green, Icons.emoji_emotions_outlined);
-      case 'sad':
-        return (Colors.blue, Icons.sentiment_dissatisfied_outlined);
-      case 'calm':
-        return (Colors.teal, Icons.self_improvement);
-      case 'angry':
-        return (Colors.red, Icons.mood_bad_outlined);
-      default:
-        return (Colors.grey, Icons.sentiment_neutral_outlined);
+      case 'happy': return (Colors.green, Icons.emoji_emotions_outlined);
+      case 'sad': return (Colors.blue, Icons.sentiment_dissatisfied_outlined);
+      case 'calm': return (Colors.teal, Icons.self_improvement);
+      case 'angry': return (Colors.red, Icons.mood_bad_outlined);
+      default: return (Colors.grey, Icons.sentiment_neutral_outlined);
     }
   }
 
-  Color _moodColor(AppColors colors, String mood) {
-    return _getMoodColors(mood).$1;
-  }
-
-  IconData _getMoodIcon(String mood) {
-    return _getMoodColors(mood).$2;
-  }
-
+  IconData _getMoodIcon(String mood) => _getMoodColors(mood).$2;
   String _getMoodLabel(String mood) {
     switch (mood) {
-      case 'happy':
-        return '开心';
-      case 'sad':
-        return '低落';
-      case 'calm':
-        return '平静';
-      case 'angry':
-        return '生气';
-      default:
-        return '中性';
+      case 'happy': return '开心';
+      case 'sad': return '低落';
+      case 'calm': return '平静';
+      case 'angry': return '生气';
+      default: return '中性';
     }
   }
 }
