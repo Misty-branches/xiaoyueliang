@@ -5,6 +5,7 @@ import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 import 'chat_page.dart';
 import 'diary_page.dart';
+import 'letter_room_page.dart';
 import 'bookshelf_page.dart';
 import 'todo_page.dart';
 import 'echo_wall_page.dart';
@@ -103,7 +104,7 @@ class HubPage extends StatelessWidget {
         icon: Icons.edit_outlined,
         label: '信件室',
         subLabel: 'LETTERS',
-        page: const DiaryPage(),
+        page: const LetterRoomPage(),
       ),
       _RoomItem(
         icon: Icons.book_outlined,
