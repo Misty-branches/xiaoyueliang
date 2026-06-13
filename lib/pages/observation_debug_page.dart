@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/observation.dart';
 import '../widgets/theme_colors.dart';
+import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 
 /// 观察层调试面板
@@ -84,7 +86,7 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: ThemeColors.backIcon(context),
+            icon: MoonIcon.backIcon(context),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
@@ -647,15 +649,17 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
                         color: colors.cardBase.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: SelectableText(
-                        jsonStr,
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 11,
-                          color: colors.mainText,
-                          height: 1.5,
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        child: SelectableText(
+                          jsonStr,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                            color: colors.mainText,
+                            height: 1.5,
+                          ),
                         ),
-                        scrollController: scrollController,
                       ),
                     ),
                   ),
