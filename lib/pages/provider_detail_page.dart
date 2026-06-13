@@ -297,31 +297,6 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
               onPressed: () => setState(() => _showKey = !_showKey),
             ),
             const SizedBox(width: 4),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('检查功能需要后端支持'),
-                    backgroundColor: colors.accent,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.accent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                '检查',
-                style: TextStyle(
-                  fontFamily: 'NotoSansSC',
-                  fontSize: 13,
-                ),
-              ),
-            ),
           ],
         ),
       ],

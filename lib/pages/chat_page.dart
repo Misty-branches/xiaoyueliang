@@ -130,6 +130,10 @@ class _ChatPageState extends State<ChatPage> {
 
     // 聊天模式：有活跃对话且不在会话列表模式
     if (hasActiveConv && !_showConversationList) {
+      // 每次 build 时同步最新 API 配置（用户在设置页保存后自动生效）
+      final config = context.watch<ProviderConfigProvider>();
+      chat.configureFrom(config.activeProvider);
+      
       return Scaffold(
         backgroundColor: colors.background,
         body: SafeArea(
