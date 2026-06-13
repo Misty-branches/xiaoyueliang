@@ -6,6 +6,10 @@ import '../models/observation.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
+import 'package:provider/provider.dart';
+import '../models/chat_message.dart';
+import '../providers/observation_provider.dart';
+import '../test_helpers/observation_test_cases.dart';
 
 /// 观察层调试面板
 ///
@@ -24,6 +28,7 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
   ObservationSnapshot? _snapshot;
   Map<String, dynamic>? _rawJson;
   bool _loading = true;
+  int _selectedTestCaseIndex = 0;
 
   @override
   void initState() {
@@ -51,6 +56,132 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
     }
   }
 
+  // ═══════════════════════════════════════════
+  // 测试场景选择与加载
+  // ═══════════════════════════════════════════
+  Widget _buildTestSceneSelector(BuildContext context, AppColors colors) {
+    final testCase = kTestCases[_selectedTestCaseIndex];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.science_outlined, size: 18, color: colors.accent),
+                const SizedBox(width: 8),
+                Text(
+                  '测试场景',
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: colors.mainText,
+                  ),
+                ),
+                const Spacer(),
+                DropdownButton<int>(
+                  value: _selectedTestCaseIndex,
+                  underline: const SizedBox(),
+                  dropdownColor: colors.cardBase,
+                  items: List.generate(kTestCases.length, (i) {
+                    return DropdownMenuItem<int>(
+                      value: i,
+                      child: Text(
+                        kTestCases[i].name,
+                        style: TextStyle(
+                          fontFamily: 'NotoSansSC',
+                          fontSize: 13,
+                          color: colors.mainText,
+                        ),
+                      ),
+                    );
+                  }),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedTestCaseIndex = value);
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              testCase.scenario,
+              style: TextStyle(
+                fontFamily: 'NotoSansSC',
+                fontSize: 12,
+                color: colors.secondaryText,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _loadTestCaseObservation,
+                icon: const Icon(Icons.play_arrow, size: 18),
+                label: const Text('加载并运行观察'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  textStyle: const TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _loadTestCaseObservation() async {
+    try {
+      final testCase = kTestCases[_selectedTestCaseIndex];
+      final now = DateTime.now();
+      final messages = testCase.chatMessages.asMap().entries.map((e) {
+        return ChatMessage(
+          id: 'test_${e.key}',
+          role: 'user',
+          content: e.value,
+          timestamp: now.subtract(Duration(hours: e.key)),
+        );
+      }).toList();
+
+      final provider = context.read<ObservationProvider>();
+      await provider.generateObservation(
+        recentMessages: messages,
+        recentDiaries: [],
+        projects: [],
+        books: [],
+        messageCounts: messages.length,
+        diaryCounts: 0,
+        todoCounts: 0,
+      );
+
+      await _loadObservation();
+    } catch (e) {
+      debugPrint('[ObservationDebugPage] 加载测试场景失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载失败: $e'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -62,6 +193,8 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
           children: [
             _buildHeader(context, colors),
             const SizedBox(height: 16),
+            _buildTestSceneSelector(context, colors),
+            const SizedBox(height: 12),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
