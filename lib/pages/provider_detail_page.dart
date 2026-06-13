@@ -19,6 +19,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
   late TextEditingController _keyCtrl;
   late TextEditingController _hostCtrl;
   late TextEditingController _pathCtrl;
+  late TextEditingController _modelCtrl;
   late String _apiMode;
   late bool _useProxy;
   bool _showKey = false;
@@ -30,6 +31,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
     _keyCtrl = TextEditingController(text: widget.provider.apiKey);
     _hostCtrl = TextEditingController(text: widget.provider.apiHost);
     _pathCtrl = TextEditingController(text: widget.provider.apiPath);
+    _modelCtrl = TextEditingController(text: widget.provider.activeModel);
     _apiMode = widget.provider.apiMode;
     _useProxy = widget.provider.useProxy;
   }
@@ -40,6 +42,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
     _keyCtrl.dispose();
     _hostCtrl.dispose();
     _pathCtrl.dispose();
+    _modelCtrl.dispose();
     super.dispose();
   }
 
@@ -81,6 +84,9 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                     const SizedBox(height: 20),
                     // API 路径
                     _buildField(colors, 'API 路径', _pathCtrl, hint: '/v1/chat/completions'),
+                    const SizedBox(height: 20),
+                    // 模型选择
+                    _buildModelSelector(colors),
                     const SizedBox(height: 20),
                     // 网络兼容性
                     _buildToggleField(colors, '改善网络兼容性', '启用代理和重试机制', _useProxy, 
@@ -304,6 +310,93 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
   }
 
   // ═══════════════════════════════════════════
+  // 模型选择
+  // ═══════════════════════════════════════════
+  Widget _buildModelSelector(AppColors colors) {
+    final models = widget.provider.models;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '模型',
+          style: TextStyle(
+            fontFamily: 'NotoSansSC',
+            fontSize: 11,
+            color: colors.secondaryText,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _modelCtrl,
+          style: TextStyle(
+            fontFamily: 'NotoSansSC',
+            fontSize: 14,
+            color: colors.mainText,
+          ),
+          decoration: InputDecoration(
+            hintText: 'gpt-4o / claude-sonnet-4 / deepseek-chat',
+            hintStyle: TextStyle(
+              fontFamily: 'NotoSansSC',
+              fontSize: 14,
+              color: colors.mutedText,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: colors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: colors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: colors.accent),
+            ),
+            contentPadding: const EdgeInsets.all(14),
+          ),
+        ),
+        if (models.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: models.map((model) {
+              final isSelected = _modelCtrl.text == model;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _modelCtrl.text = model);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected ? colors.accentLight : colors.cardSurface,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isSelected ? colors.accent : colors.border,
+                      width: isSelected ? 1.5 : 0.5,
+                    ),
+                  ),
+                  child: Text(
+                    model,
+                    style: TextStyle(
+                      fontFamily: 'NotoSansSC',
+                      fontSize: 12,
+                      color: isSelected ? colors.accent : colors.secondaryText,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════
   // 开关字段
   // ═══════════════════════════════════════════
   Widget _buildToggleField(AppColors colors, String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
@@ -446,6 +539,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
       apiKey: _keyCtrl.text,
       apiHost: _hostCtrl.text,
       apiPath: _pathCtrl.text,
+      activeModel: _modelCtrl.text,
       useProxy: _useProxy,
     );
     
