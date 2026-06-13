@@ -15,6 +15,7 @@ import 'providers/note_provider.dart';
 import 'providers/collection_provider.dart';
 import 'providers/project_provider.dart';
 import 'providers/daily_message_provider.dart';
+import 'providers/observation_provider.dart';
 import 'providers/shared_goals_provider.dart';
 import 'providers/recent_activity_provider.dart';
 import 'providers/provider_config_provider.dart';
@@ -44,6 +45,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => CollectionProvider()..loadItems()),
         ChangeNotifierProvider(create: (_) => ProjectProvider()..loadProjects()),
         // 观察层
+        ChangeNotifierProvider(create: (_) => ObservationProvider()..loadCached()),
         ChangeNotifierProvider(create: (_) => DailyMessageProvider()..loadMessage()),
         ChangeNotifierProvider(create: (_) => SharedGoalsProvider()..loadGoals()),
         ChangeNotifierProvider(create: (_) => RecentActivityProvider()..loadActivities()),
