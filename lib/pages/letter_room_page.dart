@@ -6,6 +6,7 @@ import '../providers/diary_provider.dart';
 import '../models/message_post.dart';
 import '../models/diary_entry.dart';
 import '../widgets/theme_colors.dart';
+import '../widgets/moon_icon.dart';
 import 'hub_page.dart';
 import 'settings_page.dart';
 
@@ -655,7 +656,7 @@ class _DiaryCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Text('${entry.date.month}/${entry.day}', style: TextStyle(
+                Text('${entry.date.month}/${entry.date.day}', style: TextStyle(
                   fontFamily: 'NotoSansSC', fontSize: 11, color: colors.mutedText,
                 )),
                 const Spacer(),
