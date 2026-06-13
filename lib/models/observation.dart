@@ -54,28 +54,32 @@ class ObservationSnapshot {
       );
 }
 
-/// 兴趣项：话题名称 + 相关度评分(0~1) + 最近提及时间
+/// 兴趣项：话题名称 + 相关度评分(0~1) + 最近提及时间 + 来源类型
 class InterestItem {
   final String topic;
   final double score;
   final DateTime lastMention;
+  final String sourceType; // 'explicit' | 'implicit' | 'inferred'
 
   const InterestItem({
     required this.topic,
     required this.score,
     required this.lastMention,
+    this.sourceType = 'inferred',
   });
 
   Map<String, dynamic> toJson() => {
         'topic': topic,
         'score': score,
         'lastMention': lastMention.toIso8601String(),
+        'sourceType': sourceType,
       };
 
   factory InterestItem.fromJson(Map<String, dynamic> json) => InterestItem(
         topic: json['topic'] as String,
         score: (json['score'] as num).toDouble(),
         lastMention: DateTime.parse(json['lastMention'] as String),
+        sourceType: json['sourceType'] as String? ?? 'inferred',
       );
 }
 
@@ -83,17 +87,24 @@ class InterestItem {
 class MoodState {
   final String mood; // 'happy' | 'calm' | 'sad' | 'angry' | 'neutral'
   final double confidence;
+  final String sourceType; // 'explicit' | 'implicit' | 'inferred'
 
-  const MoodState({this.mood = 'neutral', this.confidence = 0.0});
+  const MoodState({
+    this.mood = 'neutral',
+    this.confidence = 0.0,
+    this.sourceType = 'inferred',
+  });
 
   Map<String, dynamic> toJson() => {
         'mood': mood,
         'confidence': confidence,
+        'sourceType': sourceType,
       };
 
   factory MoodState.fromJson(Map<String, dynamic> json) => MoodState(
         mood: json['mood'] as String? ?? 'neutral',
         confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+        sourceType: json['sourceType'] as String? ?? 'inferred',
       );
 }
 

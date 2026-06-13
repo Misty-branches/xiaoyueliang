@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 import '../providers/theme_provider.dart';
 import '../providers/provider_config_provider.dart';
 import '../widgets/theme_colors.dart';
@@ -7,6 +8,7 @@ import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
 import 'provider_detail_page.dart';
 import 'hub_page.dart';
+import 'observation_debug_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final bool embedded;
@@ -304,6 +306,23 @@ class SettingsPage extends StatelessWidget {
             subtitle: '查看本机数据体积',
             onTap: () {},
           ),
+          // 调试入口（仅 debug 模式可见）
+          if (kDebugMode)
+            _buildSettingRow(
+              context,
+              colors,
+              icon: Icons.bug_report_outlined,
+              title: '观察层调试',
+              subtitle: '查看 ObservationSnapshot 原始数据',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ObservationDebugPage(),
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

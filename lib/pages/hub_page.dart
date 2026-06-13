@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
 import '../widgets/glass_card.dart';
@@ -8,6 +9,7 @@ import 'bookshelf_page.dart';
 import 'todo_page.dart';
 import 'echo_wall_page.dart';
 import 'settings_page.dart';
+import 'observation_debug_page.dart';
 
 class HubPage extends StatelessWidget {
   final bool embedded;
@@ -121,6 +123,14 @@ class HubPage extends StatelessWidget {
         subLabel: 'MEMORIES',
         page: const EchoWallPage(),
       ),
+      // 调试入口（仅 debug 模式可见）
+      if (kDebugMode)
+        _RoomItem(
+          icon: Icons.bug_report_outlined,
+          label: '调试',
+          subLabel: 'DEBUG',
+          page: const ObservationDebugPage(),
+        ),
     ];
 
     return GridView.builder(

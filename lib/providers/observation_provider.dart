@@ -111,6 +111,11 @@ class ObservationProvider extends ChangeNotifier {
   /// 将聊天消息和日记文本合并，按空格/标点切词，
   /// 过滤单字和停用词后统计词频，按时间衰减加权。
   /// 取权重最高的前 5 个话题，score 归一化到 0~1。
+  ///
+  /// 同时根据词在单条消息中的出现次数判定 sourceType：
+  /// - 单条消息中同一词出现 ≥2 次 → 'explicit'
+  /// - 跨多条消息但单条 <2 次 → 'implicit'
+  /// - 其他 → 'inferred'
   List<InterestItem> extractInterests(
     List<ChatMessage> recentMessages,
     List<DiaryEntry> recentDiaries, {
@@ -135,9 +140,13 @@ class ObservationProvider extends ChangeNotifier {
 
       // 词频统计 <word, totalWeight>
       final Map<String, double> wordWeights = {};
+      // 记录每个词在每条消息中的出现次数 <word, <messageContent, count>>
+      final Map<String, Map<String, int>> wordPerMessage = {};
+      // 记录每个词出现的消息数量
+      final Map<String, int> wordMessageCount = {};
 
       /// 处理单个文本段，根据天数差计算权重
-      void processText(String text, DateTime itemDate) {
+      void processText(String text, DateTime itemDate, String sourceId) {
         final daysAgo = today.difference(
           DateTime(itemDate.year, itemDate.month, itemDate.day),
         ).inDays;
@@ -156,21 +165,30 @@ class ObservationProvider extends ChangeNotifier {
 
         for (final word in words) {
           wordWeights[word] = (wordWeights[word] ?? 0.0) + weight;
+          // 记录 per-message 词频
+          wordPerMessage.putIfAbsent(word, () => {});
+          wordPerMessage[word]![sourceId] =
+              (wordPerMessage[word]![sourceId] ?? 0) + 1;
         }
       }
 
       // 处理聊天消息
       for (final msg in recentMessages) {
-        processText(msg.content, msg.timestamp);
+        processText(msg.content, msg.timestamp, 'msg_${msg.id}');
       }
 
       // 处理日记（标题 + 内容）
       for (final diary in recentDiaries) {
-        processText(diary.title, diary.date);
-        processText(diary.content, diary.date);
+        processText(diary.title, diary.date, 'diary_${diary.id}_title');
+        processText(diary.content, diary.date, 'diary_${diary.id}_content');
       }
 
       if (wordWeights.isEmpty) return [];
+
+      // 计算每个词出现的消息数
+      for (final entry in wordPerMessage.entries) {
+        wordMessageCount[entry.key] = entry.value.length;
+      }
 
       // 按权重降序排列，取前5
       final sorted = wordWeights.entries.toList()
@@ -183,10 +201,32 @@ class ObservationProvider extends ChangeNotifier {
       if (maxWeight <= 0) return [];
 
       return top5.map((entry) {
+        // 判定 sourceType
+        final word = entry.key;
+        final perMsg = wordPerMessage[word] ?? {};
+        String sourceType = 'inferred';
+        bool hasExplicit = false;
+        bool hasImplicit = false;
+
+        for (final count in perMsg.values) {
+          if (count >= 2) {
+            hasExplicit = true;
+          } else if (count >= 1) {
+            hasImplicit = true;
+          }
+        }
+
+        if (hasExplicit) {
+          sourceType = 'explicit';
+        } else if (hasImplicit) {
+          sourceType = 'implicit';
+        }
+
         return InterestItem(
           topic: entry.key,
           score: (entry.value / maxWeight).clamp(0.0, 1.0),
           lastMention: DateTime.now(),
+          sourceType: sourceType,
         );
       }).toList();
     } catch (e) {
@@ -203,6 +243,11 @@ class ObservationProvider extends ChangeNotifier {
   ///
   /// 统计聊天消息和日记中正向/负向词的出现次数，
   /// 取置信度最高的情绪，返回 MoodState。
+  ///
+  /// 同时根据单条消息中的匹配数量判定 sourceType：
+  /// - 单条消息中匹配 ≥3 个正向/负向词 → 'explicit'
+  /// - 跨多条消息但每条 <3 个 → 'implicit'
+  /// - 其他 → 'inferred'
   MoodState extractMood(
     List<ChatMessage> recentMessages,
     List<DiaryEntry> recentDiaries, {
@@ -223,26 +268,48 @@ class ObservationProvider extends ChangeNotifier {
 
       int positiveCount = 0;
       int negativeCount = 0;
+      bool hasExplicit = false;
+      bool hasImplicit = false;
 
-      // 统计消息
+      // 统计消息（逐条统计以判断 explicit）
       for (final msg in recentMessages) {
+        int msgPositive = 0;
+        int msgNegative = 0;
         for (final word in positiveWords) {
-          if (msg.content.contains(word)) positiveCount++;
+          if (msg.content.contains(word)) msgPositive++;
         }
         for (final word in negativeWords) {
-          if (msg.content.contains(word)) negativeCount++;
+          if (msg.content.contains(word)) msgNegative++;
         }
+        final msgTotal = msgPositive + msgNegative;
+        if (msgTotal >= 3) {
+          hasExplicit = true;
+        } else if (msgTotal > 0) {
+          hasImplicit = true;
+        }
+        positiveCount += msgPositive;
+        negativeCount += msgNegative;
       }
 
-      // 统计日记
+      // 统计日记（逐条统计以判断 explicit）
       for (final diary in recentDiaries) {
         final diaryText = '${diary.title} ${diary.content}';
+        int diaryPositive = 0;
+        int diaryNegative = 0;
         for (final word in positiveWords) {
-          if (diaryText.contains(word)) positiveCount++;
+          if (diaryText.contains(word)) diaryPositive++;
         }
         for (final word in negativeWords) {
-          if (diaryText.contains(word)) negativeCount++;
+          if (diaryText.contains(word)) diaryNegative++;
         }
+        final diaryTotal = diaryPositive + diaryNegative;
+        if (diaryTotal >= 3) {
+          hasExplicit = true;
+        } else if (diaryTotal > 0) {
+          hasImplicit = true;
+        }
+        positiveCount += diaryPositive;
+        negativeCount += diaryNegative;
       }
 
       final total = positiveCount + negativeCount;
@@ -250,18 +317,33 @@ class ObservationProvider extends ChangeNotifier {
         return const MoodState(mood: 'neutral', confidence: 0.0);
       }
 
+      final String sourceType;
+      if (hasExplicit) {
+        sourceType = 'explicit';
+      } else if (hasImplicit) {
+        sourceType = 'implicit';
+      } else {
+        sourceType = 'inferred';
+      }
+
       if (positiveCount > negativeCount) {
         return MoodState(
           mood: 'happy',
           confidence: positiveCount / total,
+          sourceType: sourceType,
         );
       } else if (negativeCount > positiveCount) {
         return MoodState(
           mood: 'sad',
           confidence: negativeCount / total,
+          sourceType: sourceType,
         );
       } else {
-        return const MoodState(mood: 'neutral', confidence: 0.0);
+        return MoodState(
+          mood: 'neutral',
+          confidence: 0.0,
+          sourceType: sourceType,
+        );
       }
     } catch (e) {
       debugPrint('[ObservationProvider] extractMood 异常: $e');
