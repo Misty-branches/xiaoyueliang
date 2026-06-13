@@ -19,6 +19,7 @@ import 'providers/observation_provider.dart';
 import 'providers/shared_goals_provider.dart';
 import 'providers/recent_activity_provider.dart';
 import 'providers/provider_config_provider.dart';
+import 'providers/memory_provider.dart';
 
 // Theme
 import 'widgets/theme_colors.dart';
@@ -51,6 +52,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => RecentActivityProvider()..loadActivities()),
         // 配置层
         ChangeNotifierProvider(create: (_) => ProviderConfigProvider()..loadProviders()),
+        // 记忆层
+        ChangeNotifierProvider(create: (_) => MemoryProvider()..loadMemories()),
       ],
       child: const MoonlitWindowApp(),
     ),

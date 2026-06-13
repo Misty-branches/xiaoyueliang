@@ -6,6 +6,7 @@ import '../providers/diary_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/bookshelf_provider.dart';
 import '../providers/todo_provider.dart';
+import '../providers/memory_provider.dart';
 import '../models/chat_message.dart';
 import '../models/diary_entry.dart';
 
@@ -30,6 +31,7 @@ class ObservationService {
     required BookshelfProvider bookshelfProvider,
     required TodoProvider todoProvider,
     required ObservationProvider observationProvider,
+    required MemoryProvider memoryProvider,
   }) async {
     // 取消之前的定时器
     _debounceTimer?.cancel();
@@ -43,6 +45,7 @@ class ObservationService {
         bookshelfProvider: bookshelfProvider,
         todoProvider: todoProvider,
         observationProvider: observationProvider,
+        memoryProvider: memoryProvider,
       );
     });
   }
@@ -57,6 +60,7 @@ class ObservationService {
     required BookshelfProvider bookshelfProvider,
     required TodoProvider todoProvider,
     required ObservationProvider observationProvider,
+    required MemoryProvider memoryProvider,
   }) async {
     _debounceTimer?.cancel();
     await _collectAndGenerate(
@@ -66,6 +70,7 @@ class ObservationService {
       bookshelfProvider: bookshelfProvider,
       todoProvider: todoProvider,
       observationProvider: observationProvider,
+      memoryProvider: memoryProvider,
     );
   }
 
@@ -77,6 +82,7 @@ class ObservationService {
     required BookshelfProvider bookshelfProvider,
     required TodoProvider todoProvider,
     required ObservationProvider observationProvider,
+    required MemoryProvider memoryProvider,
   }) async {
     try {
       // 1. 收集最近30天的消息
@@ -103,7 +109,7 @@ class ObservationService {
       final todoCount = todoProvider.todos.length;
 
       // 6. 调用 ObservationProvider 生成快照
-      await observationProvider.generateObservation(
+      final snapshot = await observationProvider.generateObservation(
         recentMessages: recentMessages,
         recentDiaries: recentDiaries,
         projects: projects,
@@ -113,8 +119,12 @@ class ObservationService {
         todoCounts: todoCount,
       );
 
-      debugPrint('[ObservationService] 观察完成: $messageCount 条消息, '
-          '$diaryCount 篇日记, $todoCount 个待办');
+      // 7. 观察结果 → Memory 晋升（自动持久化）
+      await memoryProvider.promoteFromObservation(snapshot);
+
+      debugPrint('[ObservationService] 观察+记忆完成: $messageCount 条消息, '
+          '$diaryCount 篇日记, $todoCount 个待办, '
+          '${memoryProvider.count} 条记忆');
     } catch (e) {
       debugPrint('[ObservationService] 收集数据异常: $e');
     }

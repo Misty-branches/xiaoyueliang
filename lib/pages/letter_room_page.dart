@@ -8,6 +8,7 @@ import '../providers/project_provider.dart';
 import '../providers/bookshelf_provider.dart';
 import '../providers/todo_provider.dart';
 import '../providers/observation_provider.dart';
+import '../providers/memory_provider.dart';
 import '../services/observation_service.dart';
 import '../models/message_post.dart';
 import '../models/diary_entry.dart';
@@ -466,6 +467,7 @@ class _LetterRoomPageState extends State<LetterRoomPage>
       bookshelfProvider: context.read<BookshelfProvider>(),
       todoProvider: context.read<TodoProvider>(),
       observationProvider: context.read<ObservationProvider>(),
+      memoryProvider: context.read<MemoryProvider>(),
     );
   }
 

@@ -7,6 +7,7 @@ import '../providers/project_provider.dart';
 import '../providers/bookshelf_provider.dart';
 import '../providers/todo_provider.dart';
 import '../providers/observation_provider.dart';
+import '../providers/memory_provider.dart';
 import '../services/observation_service.dart';
 import '../widgets/theme_colors.dart';
 import '../widgets/moon_icon.dart';
@@ -99,6 +100,7 @@ class _ChatPageState extends State<ChatPage> {
       bookshelfProvider: context.read<BookshelfProvider>(),
       todoProvider: context.read<TodoProvider>(),
       observationProvider: context.read<ObservationProvider>(),
+      memoryProvider: context.read<MemoryProvider>(),
     );
   }
 

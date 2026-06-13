@@ -10,6 +10,13 @@ class ObservationSnapshot {
   final ReadingProgress? reading;
   final BehaviorPattern behavior;
 
+  /// 整体可信度评分 (0~1)
+  ///
+  /// 由各子项的分数加权平均计算：
+  /// - 兴趣均分 × 0.3 + 情绪置信度 × 0.3
+  /// - + 活跃项目 (有=0.7) × 0.2 + 阅读状态 (有=0.6) × 0.2
+  final double confidence;
+
   ObservationSnapshot({
     required this.id,
     required this.date,
@@ -18,11 +25,33 @@ class ObservationSnapshot {
     this.activeProjects = const [],
     this.reading,
     this.behavior = const BehaviorPattern(),
-  });
+    double? confidence,
+  }) : confidence = confidence ?? _calcConfidence(interests, mood, activeProjects, reading);
+
+  /// 静态计算方法（构造函数默认调用）
+  static double _calcConfidence(
+    List<InterestItem> interests,
+    MoodState mood,
+    List<ActiveProject> activeProjects,
+    ReadingProgress? reading,
+  ) {
+    double interestScore = 0.0;
+    if (interests.isNotEmpty) {
+      interestScore = interests.map((i) => i.score).reduce((a, b) => a + b) / interests.length;
+    }
+
+    final double moodScore = mood.confidence;
+    final double projectScore = activeProjects.isNotEmpty ? 0.7 : 0.0;
+    final double readingScore = reading != null ? 0.6 : 0.0;
+
+    return (interestScore * 0.3 + moodScore * 0.3 + projectScore * 0.2 + readingScore * 0.2)
+        .clamp(0.0, 1.0);
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'date': date.toIso8601String(),
+        'confidence': confidence,
         'interests': interests.map((i) => i.toJson()).toList(),
         'mood': mood.toJson(),
         'activeProjects': activeProjects.map((p) => p.toJson()).toList(),
@@ -34,6 +63,7 @@ class ObservationSnapshot {
       ObservationSnapshot(
         id: json['id'] as String,
         date: DateTime.parse(json['date'] as String),
+        confidence: (json['confidence'] as num?)?.toDouble(),
         interests: (json['interests'] as List?)
                 ?.map((e) => InterestItem.fromJson(e))
                 .toList() ??
