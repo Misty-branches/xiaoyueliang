@@ -86,7 +86,7 @@ class _ObservationDebugPageState extends State<ObservationDebugPage> {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: MoonIcon.backIcon(context),
+            icon: ThemeColors.backIcon(context),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
